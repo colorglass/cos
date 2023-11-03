@@ -1,7 +1,8 @@
 # suffix match
 *.a
+*.elf
 *.bin
 *.img
 
-# file match
+# directory match
 test/

@@ -118,13 +118,14 @@ static int elf_is_vaild(struct elf_header* elf_header)
 }
 
 // setup kernel from the elf file
-int elf_load_kernel(char* file)
+u32 elf_load_kernel(char* file)
 {
     elf_is_vaild((struct elf_header*)file);
     int prog_num = ((struct elf_header*)file)->phnum;
     struct elf_prog_header* ph_table = (struct elf_prog_header*)(file + ((struct elf_header*)file)->phoff);
     
-    for(int i=0;i<prog_num;i++) {
+    // load all loadable program segments into memory
+    for(int i = 0; i < prog_num; i++) {
         elf_print_prog(&ph_table[i]);
 
         if(ph_table[i].type != 1)
@@ -135,11 +136,37 @@ int elf_load_kernel(char* file)
         u32 file_end = ROUND_UP(ph_table[i].offset + ph_table[i].filesz, align);
         u32 file_length = file_end - file_start;
 
-        for(int i=0;i < file_length / align; i++) {
+        u32 kernel_start = ROUND_DOWN(ph_table[i].vaddr, align);
+        u32 kernel_end = ROUND_UP(ph_table[i].vaddr + ph_table[i].memsz, align);
+        u32 kernel_length = kernel_end - kernel_start;
+
+        for(int j = 0; j < kernel_length / align; j++) {
             u32 paddr = mem_frame_alloc();
             u32 vaddr = page_map_identical(paddr);
-            memcpy(vaddr, file + file_start, file_length);
+            if(!vaddr)
+                return 0;
+
+            if(j < file_length / align)
+                memcpy(vaddr, file + file_start + j * align, file_length);
+            else
+                memset(vaddr, 0, PAGE_SIZE);
+
+            page_map_kernel(paddr, kernel_start + j * align);
         }
+
+        // clear the unaligned part
+        if(file_start < ph_table[i].offset) {
+            u32 padding_size = ph_table[i].offset - file_start;
+            memset(kernel_start, 0, padding_size);
+        }
+
+        if(file_end > ph_table[i].offset + ph_table[i].filesz) {
+            u32 padding_size = file_end - ph_table[i].offset - ph_table[i].filesz;
+            memset(kernel_start + ph_table[i].filesz + ph_table[i].offset - file_start, 0, padding_size);
+        }
+        
     }
-    return 0;
+
+
+    return ((struct elf_header*)file)->entry;
 }

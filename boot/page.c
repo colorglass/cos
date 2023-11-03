@@ -34,6 +34,7 @@ struct page_table_entry
 
 static struct page_dir_entry page_dir[1024] __attribute__((aligned(4096)));
 static struct page_table_entry page_table[1024] __attribute__((aligned(4096)));
+static struct page_table_entry page_table_kernel[1024] __attribute__((aligned(4096)));
 
 // identical map the first 1MB memory
 // no irq handler now, so be sure there will be no pagefault
@@ -43,6 +44,7 @@ void page_init()
     // the struct may already be zeroed
     // memset(page_dir, 0, sizeof(page_dir));
     // memset(page_table, 0, sizeof(page_table));
+    // memset(page_table_kernel, 0, sizeof(page_table_kernel);
 
     // setup page table
     // identity map low 1MB memory
@@ -59,6 +61,13 @@ void page_init()
     page_dir[0].writable = 1;
     page_dir[0].super = 1;
     page_dir[0].frame = PAGE_FRAME((u32)page_table); // for now we are still in the physical world, so we use the address directly
+
+    // map kernel page table
+    u32 kernel_page_table_idx = PAGE_NUM(0xc0000000) / 1024;
+    page_dir[kernel_page_table_idx].present = 1;
+    page_dir[kernel_page_table_idx].writable = 1;
+    page_dir[kernel_page_table_idx].super = 1;
+    page_dir[kernel_page_table_idx].frame = PAGE_FRAME((u32)page_table_kernel);
 
     // enable paging
     u32 cr3 = PAGE_FRAME((u32)page_dir) << 12;
@@ -86,6 +95,25 @@ u32 page_map_identical(u32 paddr)
     page_table[page].writable = 1;
     page_table[page].super = 1;
     page_table[page].frame = PAGE_FRAME(paddr);
+
+    return vaddr;
+}
+
+// temporarily map kernel into the max 4MB from 0xc0000000
+u32 page_map_kernel(u32 paddr, u32 vaddr)
+{
+    u32 page = PAGE_NUM(vaddr - 0xc0000000);
+
+    if(page >= 1024)
+        return 0;
+
+    if(page_table_kernel[page].present)
+        return 0;
+
+    page_table_kernel[page].present = 1;
+    page_table_kernel[page].writable = 1;       // in the boot stage, kernel memory should be modifiable for clear padding area
+    page_table_kernel[page].super = 1;
+    page_table_kernel[page].frame = PAGE_FRAME(paddr);
 
     return vaddr;
 }

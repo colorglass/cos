@@ -25,7 +25,7 @@ boot.bin: boot/*.S boot/*.c
 	objcopy -O binary boot.a $@
 
 kernel.elf: kernel/*.c
-	$(CC) $(CC_FLAGS) -o $@ $^ -g
+	$(CC) $(CC_FLAGS) -T kernel/kernel.ld -o $@ $^ -g
 
 .phony: debug
 debug: disk.img boot.a

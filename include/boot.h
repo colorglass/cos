@@ -22,10 +22,11 @@ void fat_init(int parti_id);
 void fat_print_fat();
 u32 fat_load_kernel();
 
-int elf_load_kernel(char* file);
+u32 elf_load_kernel(char* file);
 
 int mem_map_init();
 u32 mem_frame_alloc();
 
 void page_init();
 u32 page_map_identical(u32 paddr);
+u32 page_map_kernel(u32 paddr, u32 vaddr);

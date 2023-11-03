@@ -35,7 +35,10 @@ void boot_main()
             continue;
         }
 
-        elf_load_kernel(kernel_elf_addr);
+        u32 entry = elf_load_kernel(kernel_elf_addr);
+
+        // not setup kernel stack yet
+        ((int (*)(void))entry)();
         break;
     }
 

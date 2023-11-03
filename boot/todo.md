@@ -5,13 +5,13 @@
 - Load GDTR (fi)
 - Inform BIOS of target processor mode
 - Get memory map from BIOS (fi)
-- Locate kernel in filesystem
-- Allocate memory to load kernel image
-- Load kernel image into buffer
+- Locate kernel in filesystem (fi)
+- Allocate memory to load kernel image (fi)
+- Load kernel image into buffer (fi)
 - Enable graphics mode
-- Check kernel image ELF headers
+- Check kernel image ELF headers (fi)
 - Enable long mode, if 64-bit
-- Allocate and map memory for kernel segments
+- Allocate and map memory for kernel segments (fi)
 - Setup stack
 - Setup COM serial output port
 - Setup IDT
