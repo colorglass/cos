@@ -4,8 +4,6 @@
 
 static u8 buffer[512] = {0};
 
-extern void elf_print_head(void* buffer);
-
 enum fat_type {
     UNKONWN,
     FAT_12,
@@ -24,7 +22,6 @@ struct fat {
     u32 clus_num;
     
     u32 first_data_sec;
-
     u32 first_fat_sec;
 
     enum fat_type type;
@@ -98,10 +95,10 @@ static inline u32 fat_get_data_sec(u32 clus)
     return fat.first_data_sec + (clus - 2) * fat.clus_sec;
 }
 
+// return fat sector number from cluster number, ent_off return the offset of cluster entry in fat sector
 static u32 fat_get_fat_sec_ent(struct fat* fat, u32 clus, u32* ent_off)
 {
     u32 fat_offset;
-    u32 fat_sec_off;
     if(fat->type == FAT_16)
         fat_offset = clus * 2;
     else if(fat->type == FAT_32)
@@ -117,7 +114,8 @@ static u32 fat_get_fat_sec_ent(struct fat* fat, u32 clus, u32* ent_off)
     return fat->first_fat_sec + fat_offset / fat->sec_byte;
 }
 
-static u32 fat_get_fat_val(struct fat* fat, u32 clus)
+// return the next chaining cluster number
+static u32 fat_get_next_clus(struct fat* fat, u32 clus)
 {
     u32 fat_sec, ent_off;
     fat_sec = fat_get_fat_sec_ent(fat, clus, &ent_off);
@@ -134,7 +132,7 @@ static u32 fat_get_fat_val(struct fat* fat, u32 clus)
         return 0;
 }
 
-static int fat_is_end(struct fat* fat, u32 clus)
+static int fat_clus_is_end(struct fat* fat, u32 clus)
 {
     if(fat->type == FAT_16)
         return clus >= 0xfff8;
@@ -144,6 +142,7 @@ static int fat_is_end(struct fat* fat, u32 clus)
         return 0;
 }
 
+// init fat file system, and there is only one fat instance for now
 void fat_init(int parti_id)
 {
     disk_read(parti_id, (void*)buffer, 0, 1);
@@ -185,20 +184,28 @@ void fat_init(int parti_id)
     fat.first_fat_sec = bpb_common->res_sec;
     fat.first_data_sec = bpb_common->res_sec + bpb_common->fat_num * fat_sec + root_dir_sec;
 
+
+    // get the root director related sectors for the next kernel read
     if(fat.type == FAT_16) {
+        // the root directory is in the fixed location in fat16
         fat.root_dir_sec_num = root_dir_sec;
-        for(int i=0;i<root_dir_sec;i++) {
+        for(int i=0; i < root_dir_sec; i++) {
             fat.root_dir_sec[i] = fat.first_fat_sec + fat.fat_num * fat_sec + i;
         }
     } else if (fat.type == FAT_32) {
         fat.root_dir_sec_num = 0;
         u32 root_clus = ((struct bpb_32*)bpb_common)->root_clus;
+
+        // traverse the root directory cluster chain
         do {
+            // we find the cluster, and now we add all the sectors of the cluster into array
             for(int i=0; i< fat.clus_sec; i++) {
                 fat.root_dir_sec[fat.root_dir_sec_num++] = fat_get_data_sec(root_clus) + i;
             }
-            root_clus = fat_get_fat_val(&fat, root_clus);
-        } while(!fat_is_end(&fat, root_clus));
+
+            // next cluster
+            root_clus = fat_get_next_clus(&fat, root_clus);
+        } while(!fat_clus_is_end(&fat, root_clus));
     }
 }
 
@@ -216,22 +223,28 @@ void fat_print_fat()
     printf("  type: %d\n", fat.type);
 }
 
+// load the kernel file into memory, the kernel file name is KERNEL.ELF and it should be in the root directory
 u32 fat_load_kernel(void* dest)
 {
+    // kernel file name string in the typical directory entry of fat.
+    // it should be KERNEL.ELF in file system
     const char *kernel_name = "KERNEL  ELF";
     u32 kernel_clus = 0;
     u32 kernel_size = 0;
 
-    for(int i=0;i < fat.root_dir_sec_num; i++) {
+    // traverse the root directory to find the kernel file
+    u32 dir_ent_num = fat.sec_byte / sizeof(struct dir_entry);      // dir entry count in one sector
+    for(int i = 0; i < fat.root_dir_sec_num; i++) {
         disk_read(fat.parti_id, (void*)buffer, fat.root_dir_sec[i], 1);
 
         struct dir_entry* dir_entry = (struct dir_entry*)buffer;
-        u32 dir_ent_num = fat.clus_sec * fat.sec_byte / sizeof(struct dir_entry);
-
-        for(int j=0;j<dir_ent_num;j++) {
+        
+        for(int j = 0; j < dir_ent_num; j++) {
+            // not a vaild entry
             if( dir_entry[j].attr == 0xe5)
                 continue;
 
+            // no more vaild entry
             if( dir_entry[j].attr == 0x00)
                 break;
 
@@ -249,14 +262,18 @@ u32 fat_load_kernel(void* dest)
 find_kernel:
     u32 left_bytes = kernel_size;
     u32 copy_bytes = 0;
+
+    // read kernel file from the disk
     do {
         disk_read(fat.parti_id, (void*)buffer, fat_get_data_sec(kernel_clus), 1);
+
         copy_bytes = left_bytes > fat.sec_byte ? fat.sec_byte : left_bytes;
         memcpy(dest, buffer, copy_bytes);
         dest += copy_bytes;
         left_bytes -= copy_bytes;
-        kernel_clus = fat_get_fat_val(&fat, kernel_clus);
-    }while(!fat_is_end(&fat, kernel_clus));
+
+        kernel_clus = fat_get_next_clus(&fat, kernel_clus);
+    }while(!fat_clus_is_end(&fat, kernel_clus));
     
     return left_bytes ? 0 : kernel_size;
 }

@@ -3,15 +3,16 @@
     .section .bootsector, "awx"
     .global _mbr
 _mbr:
-    mov %dl, boot_drive
-    xor %ax, %ax
+    mov %dl, boot_drive     // save boot drive num
+    xor %ax, %ax            // init segment registers
     mov %ax, %ds
     mov %ax, %es
     mov %ax, %ss
     mov $0x7c00, %sp
 
+    // print boot message
     mov $boot_msg, %bp
-    mov $boot_msg_len, %cx
+    mov $boot_msg_len, %cx 
     call print_msg
 
 enable_A20:
@@ -26,18 +27,18 @@ after:
 detect_memory:
     xor %ebx, %ebx
     xor %bp, %bp
-    mov $0x14, %ecx
+    mov $0x14, %ecx     // map struct size = 20 bytes
     mov $map, %di
 1:
     mov $0xe820, %eax
-    mov $0x534d4150, %edx
+    mov $0x534d4150, %edx   // 'SMAP'
     int $0x15
     jc failed_detect
-    inc %bp
-    add $0x14, %di
-    test %ebx, %ebx
+    inc %bp             // map entry count ++
+    add $0x14, %di      // move to next map entry
+    test %ebx, %ebx     // if detect end ?
     jnz 1b
-    movw %bp, entry
+    movw %bp, entry     // save map entry count
 
 load_disk:
     mov $0x42, %ah
@@ -54,10 +55,12 @@ enter_pm:
     mov %eax, %cr0
     jmp $0x08, $after_pm
 
+// %cx = msg_len, %bp = msg_addr
 print_msg:
     push %cx
     push %bp
 
+    // get current cursor pos
     mov $0x3, %ah
     xor %bh, %bh
     int $0x10

@@ -1,12 +1,11 @@
+#include <boot.h>
 #include <type.h>
 #include <utils.h>
-
-extern void putchar(char c);
-extern void puts(const char *);
 
 static char str_map[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
 static char str_buff[64];
 
+// transfrom num to string with base
 static void to_str(int num, u8 base)
 {
     int i = 0;
@@ -30,6 +29,7 @@ static void to_str(int num, u8 base)
         str_buff[i++] = '-';
     }
 
+    // reverse string
     int j = i;
     while (j-- > i / 2)
     {
@@ -41,6 +41,8 @@ static void to_str(int num, u8 base)
     str_buff[i] = '\0';
 }
 
+
+// printf use vga text mode to print string, only support 32bit %x %d %b format output
 int printf(const char *str, ...)
 {
 

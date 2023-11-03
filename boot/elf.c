@@ -73,6 +73,8 @@ static void elf_print_prog(struct elf_prog_header* elf_prog_header)
     printf("  Align:                             %x\n", elf_prog_header->align);
 }
 
+
+// ugly code, but it works
 static int elf_is_vaild(struct elf_header* elf_header)
 {
     if (elf_header->magic[0] != 0x7f || elf_header->magic[1] != 'E' || elf_header->magic[2] != 'L' || elf_header->magic[3] != 'F') {
@@ -115,6 +117,7 @@ static int elf_is_vaild(struct elf_header* elf_header)
     return 1;
 }
 
+// setup kernel from the elf file
 int elf_load_kernel(char* file)
 {
     elf_is_vaild((struct elf_header*)file);
@@ -137,4 +140,5 @@ int elf_load_kernel(char* file)
             memcpy(frame, file + file_start, file_length);
         }
     }
+    return 0;
 }

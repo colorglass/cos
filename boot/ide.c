@@ -13,7 +13,7 @@ extern int printf(const char *str, ...);
 #define IDE1_BASE 0x170
 #define IDE1_CTRL 0x376
 
-/* normal register sets offset */
+// normal register sets offset 
 #define IDE_REG_DATA 0
 #define IDE_REG_ERR 1
 #define IDE_REG_CNT 2
@@ -24,12 +24,12 @@ extern int printf(const char *str, ...);
 #define IDE_REG_STA 7
 #define IDE_REG_CMD 7
 
-/* control register sets offset */
+// control register sets offset 
 #define IDE_REG_ASTA 0
 #define IDE_REG_CTRL 0
 #define IDE_REG_ADDR 1
 
-/* error register bits */
+// error register bits
 #define IDE_ERR_AMNF BIT(0)
 #define IDE_ERR_TK0NF BIT(1)
 #define IDE_ERR_ABRT BIT(2)
@@ -39,11 +39,11 @@ extern int printf(const char *str, ...);
 #define IDE_ERR_UNC BIT(6)
 #define IDE_ERR_BBK BIT(7)
 
-/* drive / head register bits */
+// drive / head register bits
 #define IDE_DRI_SEC BIT(4)
 #define IDE_DRI_LBA BIT(6)
 
-/* status register bits */
+// status register bits 
 #define IDE_STA_ERR BIT(0)
 #define IDE_STA_IDX BIT(1)
 #define IDE_STA_CORR BIT(2)
@@ -71,7 +71,7 @@ static struct ide_device ide_device = {0, 0, IDE0_BASE, IDE0_CTRL};
 
 static inline void ide_select(struct ide_device *ide_dev)
 {
-    /* It should be LBA supported */
+    // It should be LBA supported 
     outb(ide_dev->io_base + IDE_REG_DRI, 0xe0 | ide_dev->select << 4);
 }
 
@@ -90,6 +90,7 @@ static int ide_detect(struct ide_device *ide_dev)
 {
     ide_select(ide_dev);
 
+    // wait for device select delays (400ns)
     inb(ide_dev->io_base + IDE_REG_STA);
     inb(ide_dev->io_base + IDE_REG_STA);
     inb(ide_dev->io_base + IDE_REG_STA);
@@ -102,10 +103,11 @@ static int ide_detect(struct ide_device *ide_dev)
     if (!inb(ide_dev->io_base + IDE_REG_STA))
         return INVAILD;
 
+    // if busy or data not ready, polling
     while((inb(ide_dev->io_base + IDE_REG_STA) ^ IDE_STA_DRQ) & (IDE_STA_BSY | IDE_STA_DRQ));
 
-    for (int i = 0; i < SECTOR_SIZE / 2; i++)
-    {
+    // read all identity bytes
+    for (int i = 0; i < SECTOR_SIZE / 2; i++) {
         // identity[i] = inw(ide_dev->io_base + IDE_REG_DATA);
         inw(ide_dev->io_base + IDE_REG_DATA);
     }
@@ -145,6 +147,7 @@ u32 ide_pio_read(void* dest, u64 sec_start, u16 sec_count)
 
     while (sec_count--)
     {
+        // if busy or data not ready, polling
         while ((inb(ide_device.io_base + IDE_REG_STA) ^ IDE_STA_DRQ) & (IDE_STA_BSY | IDE_STA_DRQ))
             ;
 
@@ -178,6 +181,7 @@ u32 ide_pio_write(void* src, u64 sec_start, u16 sec_count)
 
     while (sec_count--)
     {
+        // if busy or data not ready, polling
         while ((inb(ide_device.io_base + IDE_REG_STA) ^ IDE_STA_DRQ) & (IDE_STA_BSY | IDE_STA_DRQ))
             ;
         for (int i = 0; i < SECTOR_SIZE / 2; i++)
