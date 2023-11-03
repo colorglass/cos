@@ -216,7 +216,7 @@ void fat_print_fat()
     printf("  type: %d\n", fat.type);
 }
 
-void fat_load_kernel()
+u32 fat_load_kernel(void* dest)
 {
     const char *kernel_name = "KERNEL  ELF";
     u32 kernel_clus = 0;
@@ -244,9 +244,19 @@ void fat_load_kernel()
     }
 
     if(kernel_clus == 0)
-        return;
+        return 0;
 
 find_kernel:
-    disk_read(fat.parti_id, (void*)buffer, fat_get_data_sec(kernel_clus), 1);
-    elf_print_head(buffer);
+    u32 left_bytes = kernel_size;
+    u32 copy_bytes = 0;
+    do {
+        disk_read(fat.parti_id, (void*)buffer, fat_get_data_sec(kernel_clus), 1);
+        copy_bytes = left_bytes > fat.sec_byte ? fat.sec_byte : left_bytes;
+        memcpy(dest, buffer, copy_bytes);
+        dest += copy_bytes;
+        left_bytes -= copy_bytes;
+        kernel_clus = fat_get_fat_val(&fat, kernel_clus);
+    }while(!fat_is_end(&fat, kernel_clus));
+    
+    return left_bytes ? 0 : kernel_size;
 }

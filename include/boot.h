@@ -18,4 +18,6 @@ int disk_write(int parti_id, void* src, u32 size, u64 sec_start);
 
 void fat_init(int parti_id);
 void fat_print_fat();
-void fat_load_kernel();
+u32 fat_load_kernel();
+
+int elf_load_kernel(void* src, void* dest);
