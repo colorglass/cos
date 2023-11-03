@@ -1,8 +1,7 @@
 #include <type.h>
 #include <boot.h>
 
-static unsigned char buff_1[512] = {[0 ... 511] = 0x55};
-static unsigned char buff_2[512] = {0};
+static unsigned char buff[512] = {0};
 
 void boot_main()
 {
@@ -12,5 +11,7 @@ void boot_main()
     ide_init();
     disk_mbr_init();
     disk_print_info();
+    disk_read(0, (void*)buff, 0, 1);
+    disk_write(0, (void*)buff, 1, 1);
     while(1);
 }

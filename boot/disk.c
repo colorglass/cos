@@ -86,7 +86,7 @@ int disk_find_next_bootable(int next)
     return -1;
 }
 
-int disk_read(int parti_id, u32 dest, u64 sec_start, u16 sec_count)
+int disk_read(int parti_id, void* dest, u64 sec_start, u16 sec_count)
 {
     if(parti_id >= disk.partion_num)
         return -1;
@@ -94,17 +94,14 @@ int disk_read(int parti_id, u32 dest, u64 sec_start, u16 sec_count)
     struct partition *partition;
     partition = &disk.partitions[parti_id];
 
-    u64 psec_end = 0;
-    psec_end = partition->sec_start;
-    psec_end += partition->sec_count;
-    if(sec_start < partition->sec_start || sec_start + sec_count > psec_end)
+    if(sec_start + sec_count > partition->sec_count)
         return -1;
 
-    ide_pio_read(dest, sec_start, sec_count);
+    ide_pio_read(dest, sec_start + partition->sec_start, sec_count);
     return 0;
 }
 
-int disk_write(int parti_id, u32 src, u32 size, u64 sec_start)
+int disk_write(int parti_id, void* src, u32 size, u64 sec_start)
 {
     if(parti_id >= disk.partion_num)
         return -1;
@@ -114,12 +111,9 @@ int disk_write(int parti_id, u32 src, u32 size, u64 sec_start)
 
     /* 512 bytes per write, be sure the write buffer size is 512 bytes multiple */
     u16 sec_count = (size + SECTOR_SIZE - 1) / SECTOR_SIZE;
-    u64 psec_end = 0;
-    psec_end = partition->sec_start;
-    psec_end += partition->sec_count;
-    if(sec_start < partition->sec_start || sec_start + sec_count > psec_end)
+    if(sec_start + sec_count > partition->sec_count)
         return -1;
 
-    ide_pio_write(src, sec_start, sec_count);
+    ide_pio_write(src, sec_start + partition->sec_start, sec_count);
     return 0;
 }

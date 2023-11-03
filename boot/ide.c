@@ -80,6 +80,12 @@ static inline void ide_disable_irq(struct ide_device *ide_dev)
     outb(ide_dev->ctrl_base + IDE_REG_CTRL, IDE_CTL_NIEN);
 }
 
+static inline void ide_flush_cache(struct ide_device *ide_dev)
+{
+    outb(ide_dev->io_base + IDE_REG_CMD, 0xea);
+    while(inb(ide_dev->io_base + IDE_REG_STA) & IDE_STA_BSY);
+}
+
 static int ide_detect(struct ide_device *ide_dev)
 {
     ide_select(ide_dev);
@@ -118,7 +124,7 @@ int ide_init()
     return 0;
 }
 
-u32 ide_pio_read(u32 dest, u64 sec_start, u16 sec_count)
+u32 ide_pio_read(void* dest, u64 sec_start, u16 sec_count)
 {
     u16 *buffer = (u16 *)dest;
     u32 index = 0;
@@ -151,7 +157,7 @@ u32 ide_pio_read(u32 dest, u64 sec_start, u16 sec_count)
     return index * 2;
 }
 
-u32 ide_pio_write(u32 src, u64 sec_start, u16 sec_count)
+u32 ide_pio_write(void* src, u64 sec_start, u16 sec_count)
 {
     u16 *buffer = (u16 *)src;
     u32 index = 0;
@@ -179,6 +185,8 @@ u32 ide_pio_write(u32 src, u64 sec_start, u16 sec_count)
             outw(ide_device.io_base + IDE_REG_DATA, buffer[index++]);
         }
     }
+
+    ide_flush_cache(&ide_device);
 
     return index * 2;
 }
