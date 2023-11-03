@@ -17,6 +17,8 @@ void boot_main()
     {
         printf("Find bootable partition: %d\n", boot_parti);
         fat_init(boot_parti);
+        fat_print_fat();
+        fat_load_kernel();
         boot_parti++;
     }
     while(1);

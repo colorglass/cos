@@ -5,10 +5,7 @@ CC = $(toolchain)/$(prefix)-gcc
 
 .phony: all
 all: disk.img
-disk.img: boot/*.S boot/*.c
-	$(CC) -nostdlib -ffreestanding -I include -T boot/bootloader.ld $^ -o boot.a -g
-	objcopy -O binary boot.a boot.bin
-	rm disk.img
+disk.img: boot.bin kernel.elf
 	truncate -s 1M disk.img
 	truncate -s 64M part_main		# fat32 has a min size of 32M
 	mkfs.fat -F 32 part_main
@@ -18,6 +15,16 @@ disk.img: boot/*.S boot/*.c
 	fdisk disk.img < fdisk.txt
 	dd if=boot.bin of=disk.img conv=notrunc bs=440 count=1
 	dd if=boot.bin of=disk.img conv=notrunc bs=512 skip=1 seek=1
+	sudo mount -o loop,offset=1048576 disk.img temp
+	sudo cp kernel.elf temp
+	sudo umount temp
+
+boot.bin: boot/*.S boot/*.c
+	$(CC) -nostdlib -ffreestanding -I include -T boot/bootloader.ld $^ -o boot.a -g
+	objcopy -O binary boot.a $@
+
+kernel.elf: kernel/*.c
+	$(CC) -nostdlib -ffreestanding -I include -o $@ $^ -g
 
 .phony: debug
 debug: disk.img boot.a
@@ -25,4 +32,4 @@ debug: disk.img boot.a
 
 .phony: clean
 clean:
-	rm *.a *.bin *.img
+	rm *.a *.bin *.img *.elf

@@ -17,3 +17,5 @@ int disk_read(int parti_id, void* dest, u64 sec_start, u16 sec_count);
 int disk_write(int parti_id, void* src, u32 size, u64 sec_start);
 
 void fat_init(int parti_id);
+void fat_print_fat();
+void fat_load_kernel();

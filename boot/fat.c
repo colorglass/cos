@@ -4,6 +4,8 @@
 
 static u8 buffer[512] = {0};
 
+extern void elf_print_head(void* buffer);
+
 enum fat_type {
     UNKONWN,
     FAT_12,
@@ -12,18 +14,25 @@ enum fat_type {
 };
 
 struct fat {
-    u32 parti_id;
 
+    u8 parti_id;
     u32 fat_sec;
     u16 fat_num;
 
+    u16 sec_byte;
     u16 clus_sec;
     u32 clus_num;
     
     u32 first_data_sec;
 
+    u32 first_fat_sec;
+
     enum fat_type type;
+
+    u32 root_dir_sec[32];
+    u32 root_dir_sec_num;
 } fat;
+
 
 struct bpb_common {
     u8 jmp[3];
@@ -69,10 +78,70 @@ struct bpb_32 {
     u8 fs_type[8];
 } __attribute__((packed));
 
+struct dir_entry {
+    u8 name[11];
+    u8 attr;
+    u8 res;
+    u8 crt_time_tenth;
+    u16 crt_time;
+    u16 crt_date;
+    u16 last_acc_date;
+    u16 fst_clus_hi;
+    u16 wrt_time;
+    u16 wrt_date;
+    u16 fst_clus_lo;
+    u32 file_size;
+}__attribute__((packed));
 
-static inline u32 fat_get_sec_clus(u32 clus)
+static inline u32 fat_get_data_sec(u32 clus)
 {
     return fat.first_data_sec + (clus - 2) * fat.clus_sec;
+}
+
+static u32 fat_get_fat_sec_ent(struct fat* fat, u32 clus, u32* ent_off)
+{
+    u32 fat_offset;
+    u32 fat_sec_off;
+    if(fat->type == FAT_16)
+        fat_offset = clus * 2;
+    else if(fat->type == FAT_32)
+        fat_offset = clus * 4;
+    else 
+        return 0;
+    
+
+    if(!ent_off)
+        return 0;
+
+    *ent_off = fat_offset % fat->sec_byte;
+    return fat->first_fat_sec + fat_offset / fat->sec_byte;
+}
+
+static u32 fat_get_fat_val(struct fat* fat, u32 clus)
+{
+    u32 fat_sec, ent_off;
+    fat_sec = fat_get_fat_sec_ent(fat, clus, &ent_off);
+    if(!fat_sec)
+        return 0;
+    
+    disk_read(fat->parti_id, (void*)buffer, fat_sec, 1);
+
+    if(fat->type == FAT_16)
+        return *(u16*)&buffer[ent_off];     // may be force cast to u32
+    else if(fat->type == FAT_32)
+        return *(u32*)&buffer[ent_off] & 0x0fffffff;
+    else
+        return 0;
+}
+
+static int fat_is_end(struct fat* fat, u32 clus)
+{
+    if(fat->type == FAT_16)
+        return clus >= 0xfff8;
+    else if(fat->type == FAT_32)
+        return clus >= 0x0ffffff8;
+    else
+        return 0;
 }
 
 void fat_init(int parti_id)
@@ -112,5 +181,72 @@ void fat_init(int parti_id)
     fat.clus_num = clus_num;
     fat.fat_sec = fat_sec;
     fat.fat_num = bpb_common->fat_num;
+    fat.sec_byte = bpb_common->sec_byte;
+    fat.first_fat_sec = bpb_common->res_sec;
     fat.first_data_sec = bpb_common->res_sec + bpb_common->fat_num * fat_sec + root_dir_sec;
+
+    if(fat.type == FAT_16) {
+        fat.root_dir_sec_num = root_dir_sec;
+        for(int i=0;i<root_dir_sec;i++) {
+            fat.root_dir_sec[i] = fat.first_fat_sec + fat.fat_num * fat_sec + i;
+        }
+    } else if (fat.type == FAT_32) {
+        fat.root_dir_sec_num = 0;
+        u32 root_clus = ((struct bpb_32*)bpb_common)->root_clus;
+        do {
+            for(int i=0; i< fat.clus_sec; i++) {
+                fat.root_dir_sec[fat.root_dir_sec_num++] = fat_get_data_sec(root_clus) + i;
+            }
+            root_clus = fat_get_fat_val(&fat, root_clus);
+        } while(!fat_is_end(&fat, root_clus));
+    }
+}
+
+void fat_print_fat()
+{
+    //print fat struct attribute
+    printf("fat struct attribute:\n");
+    printf("  fat_sec: %d\n", fat.fat_sec);
+    printf("  fat_num: %d\n", fat.fat_num);
+    printf("  sec_byte: %d\n", fat.sec_byte);
+    printf("  clus_sec: %d\n", fat.clus_sec);
+    printf("  clus_num: %d\n", fat.clus_num);
+    printf("  first_data_sec: %d\n", fat.first_data_sec);
+    printf("  first_fat_sec: %d\n", fat.first_fat_sec);
+    printf("  type: %d\n", fat.type);
+}
+
+void fat_load_kernel()
+{
+    const char *kernel_name = "KERNEL  ELF";
+    u32 kernel_clus = 0;
+    u32 kernel_size = 0;
+
+    for(int i=0;i < fat.root_dir_sec_num; i++) {
+        disk_read(fat.parti_id, (void*)buffer, fat.root_dir_sec[i], 1);
+
+        struct dir_entry* dir_entry = (struct dir_entry*)buffer;
+        u32 dir_ent_num = fat.clus_sec * fat.sec_byte / sizeof(struct dir_entry);
+
+        for(int j=0;j<dir_ent_num;j++) {
+            if( dir_entry[j].attr == 0xe5)
+                continue;
+
+            if( dir_entry[j].attr == 0x00)
+                break;
+
+            if(memcmp(dir_entry[j].name, kernel_name, 11) == 0) {
+                kernel_clus = (dir_entry[j].fst_clus_lo & 0xffff) | (dir_entry[j].fst_clus_hi << 16);
+                kernel_size = dir_entry[j].file_size;
+                goto find_kernel;
+            }
+        }
+    }
+
+    if(kernel_clus == 0)
+        return;
+
+find_kernel:
+    disk_read(fat.parti_id, (void*)buffer, fat_get_data_sec(kernel_clus), 1);
+    elf_print_head(buffer);
 }

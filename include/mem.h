@@ -18,4 +18,18 @@ static void *memset(void *s, char c, int n)
     return s;
 }
 
+static void* memcmp(const void* s1, const void* s2, int n)
+{
+    const char *p1 = (const char *)s1;
+    const char *p2 = (const char *)s2;
+    while (n--)
+    {
+        if (*p1 != *p2)
+            return (void *)p1;
+        p1++;
+        p2++;
+    }
+    return 0;
+}
+
 #endif
