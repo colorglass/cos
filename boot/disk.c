@@ -115,14 +115,7 @@ static int ide_detect(struct ide_device *ide_dev)
 
 int ide_init()
 {
-    if (ide_detect(&ide_device) == INVAILD)
-    {
-        printf("IDE0 is not vaild or exist, the bootloader only supports IDE0 (hda) as boot disk for now\n");
-        return -1;
-    }
-
     ide_disable_irq(&ide_device);
-
     return 0;
 }
 
@@ -149,7 +142,7 @@ u32 ide_pio_read(u32 dest, u64 sec_start, u16 sec_count)
 
     while (sec_count--)
     {
-        while ((inb(ide_device.io_base + IDE_REG_STA) & IDE_STA_DRQ) ^ (IDE_STA_BSY | IDE_STA_DRQ))
+        while ((inb(ide_device.io_base + IDE_REG_STA) ^ IDE_STA_DRQ) & (IDE_STA_BSY | IDE_STA_DRQ))
             ;
 
         for (int i = 0; i < SECTOR_SIZE / 2; i++)
@@ -169,8 +162,6 @@ u32 ide_pio_write(u32 src, u32 size, u64 sec_start)
     u16 sec_start_hi = sec_start >> 32;
     u32 sec_start_lo = sec_start;
 
-    while (inb(ide_device.io_base + IDE_REG_STA) & IDE_STA_BSY)
-        ;
 
     outb(ide_device.io_base + IDE_REG_CNT, (sec_count >> 8) & 0xff);
     outb(ide_device.io_base + IDE_REG_LBAH, (sec_start_hi >> 8) & 0xff);
@@ -185,11 +176,11 @@ u32 ide_pio_write(u32 src, u32 size, u64 sec_start)
 
     while (sec_count--)
     {
-        while ((inb(ide_device.io_base + IDE_REG_STA) & IDE_STA_DRQ) ^ (IDE_STA_BSY | IDE_STA_DRQ))
+        while ((inb(ide_device.io_base + IDE_REG_STA) ^ IDE_STA_DRQ) & (IDE_STA_BSY | IDE_STA_DRQ))
             ;
         for (int i = 0; i < SECTOR_SIZE / 2; i++)
         {
-            buffer[index++] = inw(ide_device.io_base + IDE_REG_DATA);
+            outw(ide_device.io_base + IDE_REG_DATA, buffer[index++]);
         }
     }
 
