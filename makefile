@@ -1,7 +1,12 @@
+toolchain ?= ~/opt/cross/bin
+prefix ?= i686-elf
+
+CC = $(toolchain)/$(prefix)-gcc
+
 .phony: all
 all: disk.img
 disk.img: boot/*.S boot/*.c
-	i686-elf-gcc -nostdlib -ffreestanding -I include -T boot/bootloader.ld $^ -o boot.a -g
+	$(CC) -nostdlib -ffreestanding -I include -T boot/bootloader.ld $^ -o boot.a -g
 	objcopy -O binary boot.a boot.bin
 	truncate -s 1M disk.img
 	truncate -s 8M part1
@@ -17,7 +22,7 @@ disk.img: boot/*.S boot/*.c
 
 .phony: debug
 debug: disk.img boot.a
-	qemu-system-i386 -s -S -hda disk.img -m 128M
+	qemu-system-i386 -s -S -curses -hda disk.img -m 128M
 
 .phony: clean
 clean:
