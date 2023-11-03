@@ -66,27 +66,14 @@ struct ide_device
     u16 ctrl_base;
 };
 
+// static u16 identity[256];
+
 static struct ide_device ide_device = {0, 0, IDE0_BASE, IDE0_CTRL};
-
-// /**
-//  * host action to make soft reset to device, see ATA/ATAPI-6 spec 9.2
-//  * this should apply soft reset to both master and slave devices
-// */
-// static int ata_soft_reset(struct ide_device* ide_dev)
-// {
-//     outb(ide_dev->ctrl_base + IDE_REG_CTRL, IDE_CTL_SRST);
-
-//     outb(ide_dev->ctrl_base + IDE_REG_CTRL, 0);
-
-//     /* Here need some timer to break the loop and prompt error messages */
-//     while(inb(ide_dev->io_base + IDE_REG_STA) & IDE_STA_BSY);
-
-//     return 0;
-// }
 
 static inline void ide_select(struct ide_device *ide_dev)
 {
-    outb(ide_dev->io_base + IDE_REG_DRI, 0xa0 | ide_dev->select << 4);
+    /* It should be LBA supported */
+    outb(ide_dev->io_base + IDE_REG_DRI, 0xe0 | ide_dev->select << 4);
 }
 
 static inline void ide_disable_irq(struct ide_device *ide_dev)
@@ -110,11 +97,24 @@ static int ide_detect(struct ide_device *ide_dev)
     if (!inb(ide_dev->io_base + IDE_REG_STA))
         return INVAILD;
 
+    while((inb(ide_dev->io_base + IDE_REG_STA) ^ IDE_STA_DRQ) & (IDE_STA_BSY | IDE_STA_DRQ));
+
+    for (int i = 0; i < SECTOR_SIZE / 2; i++)
+    {
+        // identity[i] = inw(ide_dev->io_base + IDE_REG_DATA);
+        inw(ide_dev->io_base + IDE_REG_DATA);
+    }
+
     return VAILD;
 }
 
 int ide_init()
 {
+    if (ide_detect(&ide_device) == INVAILD)
+    {
+        printf("IDE device not found!\n");
+        return -1;
+    }
     ide_disable_irq(&ide_device);
     return 0;
 }
@@ -126,8 +126,6 @@ u32 ide_pio_read(u32 dest, u64 sec_start, u16 sec_count)
     u16 sec_start_hi = sec_start >> 32;
     u32 sec_start_lo = sec_start;
 
-    while (inb(ide_device.io_base + IDE_REG_STA) & IDE_STA_BSY)
-        ;
 
     outb(ide_device.io_base + IDE_REG_CNT, (sec_count >> 8) & 0xff);
     outb(ide_device.io_base + IDE_REG_LBAH, (sec_start_hi >> 8) & 0xff);
