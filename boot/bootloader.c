@@ -9,9 +9,15 @@ void boot_main()
     display_clear();
     printf("Hell... Wait! It's not time!\n");
     ide_init();
-    disk_mbr_init();
+    disk_init();
     disk_print_info();
-    disk_read(0, (void*)buff, 0, 1);
-    disk_write(0, (void*)buff, 1, 1);
+
+    int boot_parti = 0;
+    while((boot_parti = disk_find_next_bootable(boot_parti)) >= 0)
+    {
+        printf("Find bootable partition: %d\n", boot_parti);
+        fat_init(boot_parti);
+        boot_parti++;
+    }
     while(1);
 }

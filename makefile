@@ -8,6 +8,7 @@ all: disk.img
 disk.img: boot/*.S boot/*.c
 	$(CC) -nostdlib -ffreestanding -I include -T boot/bootloader.ld $^ -o boot.a -g
 	objcopy -O binary boot.a boot.bin
+	rm disk.img
 	truncate -s 1M disk.img
 	truncate -s 64M part_main		# fat32 has a min size of 32M
 	mkfs.fat -F 32 part_main
@@ -20,7 +21,7 @@ disk.img: boot/*.S boot/*.c
 
 .phony: debug
 debug: disk.img boot.a
-	qemu-system-i386 -s -S -curses -hda disk.img -m 128M
+	qemu-system-i386 -s -S -display curses -hda disk.img -m 128M
 
 .phony: clean
 clean:

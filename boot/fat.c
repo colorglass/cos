@@ -12,8 +12,17 @@ enum fat_type {
 };
 
 struct fat {
+    u32 parti_id;
+
+    u32 fat_sec;
+    u16 fat_num;
+
     u16 clus_sec;
+    u32 clus_num;
+    
     u32 first_data_sec;
+
+    enum fat_type type;
 } fat;
 
 struct bpb_common {
@@ -60,9 +69,10 @@ struct bpb_32 {
     u8 fs_type[8];
 } __attribute__((packed));
 
-enum fat_type fat_get_type(struct fat* fat)
-{
 
+static inline u32 fat_get_sec_clus(u32 clus)
+{
+    return fat.first_data_sec + (clus - 2) * fat.clus_sec;
 }
 
 void fat_init(int parti_id)
@@ -78,6 +88,29 @@ void fat_init(int parti_id)
     else
         fat_sec = ((struct bpb_32*)bpb_common)->fat_sec;
 
+    u32 total_sec;
+    if(bpb_common->sec_num_16 != 0)
+        total_sec = bpb_common->sec_num_16;
+    else
+        total_sec = bpb_common->sec_num_32;
+
+    u32 data_sec = total_sec - (bpb_common->res_sec + bpb_common->fat_num * fat_sec + root_dir_sec);
+    u32 clus_num = data_sec / bpb_common->clus_sec;
+    if(clus_num < 4085) {
+        printf("fat12 is not supported!\n");
+        return;
+    } else if(clus_num < 65525) {
+        printf("fat16 detected!\n");
+        fat.type = FAT_16;
+    } else {
+        printf("fat32 detected!\n");
+        fat.type = FAT_32;
+    }
+    
+    fat.parti_id = parti_id;
     fat.clus_sec = bpb_common->clus_sec;
+    fat.clus_num = clus_num;
+    fat.fat_sec = fat_sec;
+    fat.fat_num = bpb_common->fat_num;
     fat.first_data_sec = bpb_common->res_sec + bpb_common->fat_num * fat_sec + root_dir_sec;
 }

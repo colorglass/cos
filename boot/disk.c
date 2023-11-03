@@ -33,7 +33,7 @@ struct disk
 extern const u8 _mbr[];
 static struct disk disk;
 
-int disk_mbr_init()
+int disk_init()
 {
     int partition_num = 0;
     u64 sec_count = 0;
