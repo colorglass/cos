@@ -1,5 +1,6 @@
 #include <boot.h>
 #include <type.h>
+#include <mem.h>
 
 static u8 buffer[512] = {0};
 

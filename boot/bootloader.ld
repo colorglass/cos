@@ -1,5 +1,4 @@
-
-ENTRY(_start)
+ENTRY(_mbr)
 OUTPUT_FORMAT(elf32-i386)
 SECTIONS
 {
