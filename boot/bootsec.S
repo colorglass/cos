@@ -1,8 +1,8 @@
 
     .code16
     .section .bootsector, "awx"
-    .global _start
-_start:
+    .global _mbr
+_mbr:
     mov %dl, boot_drive
     xor %ax, %ax
     mov %ax, %ds
@@ -136,7 +136,7 @@ failed_detect_msg_len = . - failed_detect_msg
 failed_load_msg: .ascii "Failed to load disk!\r\n"
 failed_load_msg_len = . - failed_load_msg
 
-    .org 510
+    .org 0x1fe
     .2byte 0xaa55
 
 

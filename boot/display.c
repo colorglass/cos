@@ -1,4 +1,5 @@
 #include <type.h>
+#include <utils.h>
 #include <mem.h>
 
 #define VIDEO_BUFFER 0xB8000
@@ -10,12 +11,21 @@ static u8 c_attribute;
 // row - column : 25 - 80
 static volatile u16 (*v_buffer)[80];
 
+static inline void disable_cursor()
+{
+	outb(0x3d4, 0x0a);
+	outb(0x3d5, 0x20);
+}
+
 int display_init()
 {
     cursor_row = 0;
     cursor_col = 0;
     c_attribute = 0x0f;
     v_buffer = (volatile u16(*)[80])(VIDEO_BUFFER);
+
+    disable_cursor();
+
     return 0;
 }
 
