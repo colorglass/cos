@@ -24,23 +24,26 @@ enable_A20:
 after:
 
 detect_memory:
-    mov $0xe820, %eax
-    mov $0x534d4150, %edx
     xor %ebx, %ebx
+    xor %bp, %bp
     mov $0x14, %ecx
     mov $map, %di
 1:
+    mov $0xe820, %eax
+    mov $0x534d4150, %edx
     int $0x15
     jc failed_detect
-    incb entry
+    inc %bp
     add $0x14, %di
-    cmp $0, %ebx
-    jne 1b
+    test %ebx, %ebx
+    jnz 1b
+    movw %bp, entry
 
 load_disk:
     mov $0x42, %ah
     mov boot_drive, %dl
-    mov disk_addr_packet, %si
+    mov $disk_addr_packet, %si
+    int $0x13
     jc failed_load
 
 enter_pm:
@@ -51,24 +54,19 @@ enter_pm:
     mov %eax, %cr0
     jmp $0x08, $after_pm
 
-
-    .code32
-after_pm:
-    mov $0x10, %ax
-    mov %ax, %ds
-    mov %ax, %es
-    mov %ax, %fs
-    mov %ax, %gs
-    mov %ax, %ss
-    mov $0x7c00, %esp
-
-
-    jmp failed
-
 print_msg:
+    push %cx
+    push %bp
+
+    mov $0x3, %ah
+    xor %bh, %bh
+    int $0x10
+
+    pop %bp
+    pop %cx
+
     mov $0x1301, %ax
     mov $0x000f, %bx
-    xor %dx, %dx
     int $0x10
     ret
 
@@ -89,13 +87,31 @@ failed:
     hlt
     jmp failed
 
+
+    .code32
+after_pm:
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %fs
+    mov %ax, %gs
+    mov %ax, %ss
+    mov $0x7c00, %esp
+
+    call boot_main
+
+2:
+    cli
+    hlt
+    jmp 2b
+
 boot_drive: .byte 0x00
 
 disk_addr_packet:
     .2byte 0x10
-    .2byte 0x200
+    .2byte 0x40
     .4byte 0x8000
-    .8byte 0x1
+    .8byte 0x2
 
 boot_gdt:
     .4byte 0x0
@@ -111,13 +127,13 @@ boot_gdtr:
     .2byte 0x17
     .4byte boot_gdt
 
-boot_msg: .string "System booting!\n"
+boot_msg: .ascii "System booting!\r\n"
 boot_msg_len = . - boot_msg
 
-failed_detect_msg: .string "Failed to detect memory map!\n"
+failed_detect_msg: .ascii "Failed to detect memory map!\r\n"
 failed_detect_msg_len = . - failed_detect_msg
 
-failed_load_msg: .string "Failed to load disk!\n"
+failed_load_msg: .ascii "Failed to load disk!\r\n"
 failed_load_msg_len = . - failed_load_msg
 
     .org 510
@@ -127,5 +143,5 @@ failed_load_msg_len = . - failed_load_msg
     .section .mem_map, "aw"
     .global _mem_map
 _mem_map:
-    entry: .2byte 0x0
+    entry: .4byte 0x0
     map:
