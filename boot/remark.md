@@ -1,0 +1,2 @@
+### 64bit data in 32bit machine cause inline asm error with : " error: inconsistent operand constraints in an 'asm'"
+While 64bit data is sperated into two 32bits register when calculated on 32bit machine, there is no constraints in inline asm for 64bit data to fit in on a 32bit machine.

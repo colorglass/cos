@@ -1,6 +1,8 @@
 #include <type.h>
 #include <mem.h>
 
+#define VIDEO_BUFFER 0xB8000
+
 static int cursor_row;
 static int cursor_col;
 static u8 c_attribute;
@@ -13,7 +15,7 @@ int display_init()
     cursor_row = 0;
     cursor_col = 0;
     c_attribute = 0x0f;
-    v_buffer = (volatile u16(*)[80])0xB8000;
+    v_buffer = (volatile u16(*)[80])(VIDEO_BUFFER);
     return 0;
 }
 

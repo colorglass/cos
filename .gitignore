@@ -1,3 +1,7 @@
+# suffix match
 *.a
 *.bin
 *.img
+
+# file match
+test/

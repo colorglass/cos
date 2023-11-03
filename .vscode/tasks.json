@@ -2,47 +2,27 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "start qemu",
             "type": "shell",
-            "command": "qemu-system-i386 -m 128M -S -s -hda disk.img ",
+            "label": "make debug",
+            "command": "make debug",
+            "group": "test",
             "isBackground": true,
-            "problemMatcher": {
-                "pattern": {
-                    "regexp": ".",
-                    "file": 1,
-                    "location": 2,
-                    "message": 3
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": ".",
-                    "endsPattern": "."
+            "problemMatcher": [
+                "$gcc",
+                {
+                    "pattern":{
+                        "regexp": ".",
+                        "file": 1,
+                        "location": 2,
+                        "message": 3
+                    },
+                    "background": {
+                        "activeOnStart": true,
+                        "beginsPattern": ".",
+                        "endsPattern": "."
+                    }
                 }
-            },
-            "dependsOn": [
-                "make"
             ]
-        },
-        {
-            "label": "make",
-            "type": "shell",
-            "command": "make",
-            "group": "build",
-            "problemMatcher": {
-                "owner": "cpp",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}"
-                ],
-                "pattern": {
-                    "regexp": "^(.*):(\\d+):(\\d+):\\s+(warning|error):\\s+(.*)$",
-                    "file": 1,
-                    "line": 2,
-                    "column": 3,
-                    "severity": 4,
-                    "message": 5
-                }
-            }
         }
     ]
 }
