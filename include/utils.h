@@ -8,6 +8,9 @@
 #define BIT(n) (1 << (n))
 #define BITS(l, r) ((BIT((l) - (r) + 1) - 1) << (r))
 
+#define ROUND_UP(x, n) (((x) + (n) - 1) & ~((n) - 1))
+#define ROUND_DOWN(x, n) ((x) & ~((n) - 1))
+
 #define outb(port, val) asm ("outb %%al, %%dx" : : "a"(val), "d"(port))
 #define outw(port, val) asm ("outw %%ax, %%dx" : : "a"(val), "d"(port))
 #define outl(port, val) asm ("outl %%eax, %%dx" : : "a"(val), "d"(port))

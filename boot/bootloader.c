@@ -2,7 +2,6 @@
 #include <boot.h>
 
 #define KERNEL_ELF 0x20000
-static unsigned char buff[512] = {0};
 
 void boot_main()
 {
@@ -12,6 +11,7 @@ void boot_main()
     ide_init();
     disk_init();
     disk_print_info();
+    mem_map_init();
 
     int boot_parti = 0;
     u32 kernel_elf_size = 0;
@@ -21,9 +21,10 @@ void boot_main()
         fat_init(boot_parti);
         fat_print_fat();
         kernel_elf_size = fat_load_kernel(KERNEL_ELF);
-        elf_load_kernel((void*)KERNEL_ELF, (void*)0x100000);
-
+        elf_load_kernel((char*)KERNEL_ELF);
         boot_parti++;
     }
+
+
     while(1);
 }

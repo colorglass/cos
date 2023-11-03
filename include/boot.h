@@ -20,4 +20,7 @@ void fat_init(int parti_id);
 void fat_print_fat();
 u32 fat_load_kernel();
 
-int elf_load_kernel(void* src, void* dest);
+int elf_load_kernel(char* file);
+
+int mem_map_init();
+void* mem_frame_alloc();

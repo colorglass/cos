@@ -2,6 +2,7 @@ toolchain ?= ~/opt/cross/bin
 prefix ?= i686-elf
 
 CC = $(toolchain)/$(prefix)-gcc
+CC_FLAGS = -nostdlib -ffreestanding -Wall -I include
 
 .phony: all
 all: disk.img
@@ -20,11 +21,11 @@ disk.img: boot.bin kernel.elf
 	sudo umount temp
 
 boot.bin: boot/*.S boot/*.c
-	$(CC) -nostdlib -ffreestanding -I include -T boot/bootloader.ld $^ -o boot.a -g
+	$(CC) $(CC_FLAGS) -T boot/bootloader.ld $^ -o boot.a -g
 	objcopy -O binary boot.a $@
 
 kernel.elf: kernel/*.c
-	$(CC) -nostdlib -ffreestanding -I include -o $@ $^ -g
+	$(CC) $(CC_FLAGS) -o $@ $^ -g
 
 .phony: debug
 debug: disk.img boot.a
