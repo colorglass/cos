@@ -38,7 +38,7 @@ int mem_map_init()
 
 static int i = 0, j = 0;
 // simple alloc a frame from available memory
-void* mem_frame_alloc()
+u32 mem_frame_alloc()
 {
     // find the next available memory region
     for(; i < mem_map->size; i++) {
@@ -52,7 +52,7 @@ void* mem_frame_alloc()
         }
 
         // return the next avaiable frame whitin the region
-        return (void*)((u32)mem_map->maps[i].base + (j++ << 12));
+        return (u32)mem_map->maps[i].base + (j++ << 12);
     }
     return 0;
 }

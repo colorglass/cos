@@ -136,8 +136,9 @@ int elf_load_kernel(char* file)
         u32 file_length = file_end - file_start;
 
         for(int i=0;i < file_length / align; i++) {
-            void* frame = mem_frame_alloc();
-            memcpy(frame, file + file_start, file_length);
+            u32 paddr = mem_frame_alloc();
+            u32 vaddr = page_map_identical(paddr);
+            memcpy(vaddr, file + file_start, file_length);
         }
     }
     return 0;

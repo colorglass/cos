@@ -12,9 +12,11 @@ void boot_main()
     display_clear();
 
     printf("Hell... Wait! It's not time!\n");
+    
     ide_init();
     disk_init();
     mem_map_init();
+    page_init();
 
     int boot_parti = 0;
     u32 kernel_elf_size = 0;

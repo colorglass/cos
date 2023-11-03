@@ -25,4 +25,7 @@ u32 fat_load_kernel();
 int elf_load_kernel(char* file);
 
 int mem_map_init();
-void* mem_frame_alloc();
+u32 mem_frame_alloc();
+
+void page_init();
+u32 page_map_identical(u32 paddr);
