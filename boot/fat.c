@@ -257,7 +257,7 @@ u32 fat_load_kernel(void* dest)
     }
 
     if(kernel_clus == 0)
-        return 0;
+        return -1;
 
 find_kernel:
     u32 left_bytes = kernel_size;
@@ -275,5 +275,5 @@ find_kernel:
         kernel_clus = fat_get_next_clus(&fat, kernel_clus);
     }while(!fat_clus_is_end(&fat, kernel_clus));
     
-    return left_bytes ? 0 : kernel_size;
+    return left_bytes ? -1 : kernel_size;
 }

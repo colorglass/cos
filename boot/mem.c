@@ -1,19 +1,8 @@
 #include <type.h>
+#include <utils.h>
 #include <boot.h>
 
 extern u8 _mem_map[];
-
-// should not use the u64 member directly since the architecure is 32 bits
-struct mem_map_bios {
-    u64 base;
-    u64 length;
-    u32 type;
-} __attribute__((packed));
-
-struct mem_map {
-    u32 size;
-    struct mem_map_bios maps[];
-} __attribute__((packed));
 
 static struct mem_map* mem_map;
 
@@ -29,30 +18,53 @@ int mem_map_init()
     // reserved all the memory in the first 1MB
     for(int i=0;i<mem_map->size;i++) {
         if(mem_map->maps[i].base < 0x100000)
-            mem_map->maps[i].type = 2;
+            mem_map->maps[i].type = MEM_TYPE_RESERVED;
         printf("base: %x, length: %x, type: %x\n", (u32)mem_map->maps[i].base, (u32)mem_map->maps[i].length, mem_map->maps[i].type);
     }
     
     return 0;
 }
 
-static int i = 0, j = 0;
-// simple alloc a frame from available memory
-u32 mem_frame_alloc()
+static int mem_find_available(u32 size)
 {
-    // find the next available memory region
-    for(; i < mem_map->size; i++) {
-        if(mem_map->maps[i].type != 1)
+    for(int i = 0; i < mem_map->size; i++) {
+        if(mem_map->maps[i].type != MEM_TYPE_AVAILABLE)
             continue;
 
-        if((j << 12) >= mem_map->maps[i].length) {
-        // current region is full, goto the next region
-            j = 0;
-            continue;
+        if(mem_map->maps[i].length >= size) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// assert all the memory value (size, boundary) is aligned to page size
+u32 mem_find_kernel_available(u32 size)
+{
+    int idx = mem_find_available(size);
+
+    if(idx < 0)
+        return -1;
+
+    u32 region_end = mem_map->maps[idx].base + size;
+
+    // now we only want kernel to be loaded under the first 4MB memory region
+    if(region_end > 0x400000)
+        return -1;
+
+    if(mem_map->maps[idx].length > size) {
+        for(int i = mem_map->size; i > idx + 1; i--) {
+            mem_map->maps[i] = mem_map->maps[i - 1];
         }
 
-        // return the next avaiable frame whitin the region
-        return (u32)mem_map->maps[i].base + (j++ << 12);
+        mem_map->maps[idx + 1].base = mem_map->maps[idx].base + size;
+        mem_map->maps[idx + 1].length = mem_map->maps[idx].length - size;
+        mem_map->maps[idx + 1].type = MEM_TYPE_AVAILABLE;
+
+        mem_map->maps[idx].length = size;
+        mem_map->size++;
     }
-    return 0;
+
+    mem_map->maps[idx].type = MEM_TYPE_KERNEL;
+    return mem_map->maps[idx].base;
 }

@@ -32,9 +32,9 @@ struct page_table_entry
     u32 frame : 20;
 } __attribute__((packed));
 
-static struct page_dir_entry page_dir[1024] __attribute__((aligned(4096)));
-static struct page_table_entry page_table[1024] __attribute__((aligned(4096)));
-static struct page_table_entry page_table_kernel[1024] __attribute__((aligned(4096)));
+static struct page_dir_entry page_dir[1024] __attribute__((aligned(PAGE_SIZE)));
+static struct page_table_entry page_table[1024] __attribute__((aligned(PAGE_SIZE)));
+static struct page_table_entry page_table_kernel[1024] __attribute__((aligned(PAGE_SIZE)));
 
 // identical map the first 1MB memory
 // no irq handler now, so be sure there will be no pagefault
@@ -42,13 +42,13 @@ void page_init()
 {
 
     // the struct may already be zeroed
-    // memset(page_dir, 0, sizeof(page_dir));
-    // memset(page_table, 0, sizeof(page_table));
-    // memset(page_table_kernel, 0, sizeof(page_table_kernel);
+    memset(page_dir, 0, sizeof(page_dir));
+    memset(page_table, 0, sizeof(page_table));
+    memset(page_table_kernel, 0, sizeof(page_table_kernel));
 
     // setup page table
-    // identity map low 1MB memory
-    for (int page = 0; page < PAGE_NUM(0x100000); page++) {
+    // identity map low 4MB memory
+    for (int page = 0; page < PAGE_NUM(0x400000); page++) {
         page_table[page].present = 1;
         page_table[page].writable = 1;
         page_table[page].super = 1;
@@ -75,28 +75,6 @@ void page_init()
     asm volatile("movl %%cr0, %%eax \n"
                  "orl $0x80000000, %%eax \n"
                  "movl %%eax, %%cr0 \n" ::: "eax");
-}
-
-// map identiacal virtual address to physical address
-u32 page_map_identical(u32 paddr)
-{
-    u32 vaddr = paddr;
-    u32 page = PAGE_NUM(vaddr);
-
-    // not support memory upper than 4MB
-    if(page >= 1024)
-        return 0;
-
-    // if the page is already mapped, return the virtual address
-    if(page_table[page].present)
-        return vaddr;
-
-    page_table[page].present = 1;
-    page_table[page].writable = 1;
-    page_table[page].super = 1;
-    page_table[page].frame = PAGE_FRAME(paddr);
-
-    return vaddr;
 }
 
 // temporarily map kernel into the max 4MB from 0xc0000000

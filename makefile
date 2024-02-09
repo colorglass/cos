@@ -17,6 +17,7 @@ disk.img: boot.bin kernel.elf
 	fdisk disk.img < fdisk.txt
 	dd if=boot.bin of=disk.img conv=notrunc bs=440 count=1
 	dd if=boot.bin of=disk.img conv=notrunc bs=512 skip=1 seek=1
+	if [ -d temp ]; then rm -f temp; fi
 	mkdir temp && sudo mount -o loop,offset=1048576 disk.img temp
 	sudo cp kernel.elf temp
 	sudo umount temp && rm -r temp
@@ -25,7 +26,7 @@ boot.bin: boot/*.S boot/*.c
 	$(CC) $(CC_FLAGS) -T boot/bootloader.ld $^ -o boot.a -g
 	objcopy -O binary boot.a $@
 
-kernel.elf: kernel/*.c
+kernel.elf: kernel/*.c kernel/*.S
 	$(CC) $(CC_FLAGS) -T kernel/kernel.ld -o $@ $^ -g
 
 .phony: debug
@@ -35,3 +36,4 @@ debug: disk.img boot.a
 .phony: clean
 clean:
 	rm *.a *.bin *.img *.elf
+	rm -r temp

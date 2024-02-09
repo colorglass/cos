@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "compare": "c",
-        "cstdint": "c"
+        "cstdint": "c",
+        "random": "c",
+        "limits": "c",
+        "algorithm": "c",
+        "utils.h": "c"
     }
 }

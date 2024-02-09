@@ -3,6 +3,26 @@
 
 #include "type.h"
 
+enum mem_type {
+    MEM_TYPE_KERNEL = 0,
+    MEM_TYPE_AVAILABLE = 1,
+    MEM_TYPE_RESERVED = 2,
+    MEM_TYPE_ACPI_RECLAIMABLE = 3,
+    MEM_TYPE_ACPI_NVS = 4,
+};
+
+// should not use the u64 member directly since the architecure is 32 bits
+struct mem_region {
+    u64 base;
+    u64 length;
+    u32 type;
+} __attribute__((packed));
+
+struct mem_map {
+    u32 size;
+    struct mem_region maps[];
+} __attribute__((packed));
+
 #define NULL 0
 
 #define BIT(n) (1 << (n))
