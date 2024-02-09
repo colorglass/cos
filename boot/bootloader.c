@@ -41,11 +41,13 @@ void boot_main()
 
         u32 mem_size = elf_get_mem_size(kernel_elf_addr);
         u32 kernel_load_paddr = mem_find_kernel_available(mem_size);
-        u32 entry = elf_load_kernel(kernel_elf_addr, kernel_load_paddr);
+        page_map_kernel(kernel_load_paddr, mem_size);
+        u32 entry = elf_load_kernel(kernel_elf_addr);
 
         // not setup kernel stack yet
         // pass the mem map location to os
-        asm volatile ("push %0"::"r"(_mem_map));
+        // gcc do not preserve eax, ecx, edx so we use ebx to pass arg
+        asm volatile ("mov %0, %%ebx"::"r"(_mem_map));
         ((int (*)(void))entry)();
         // shoud not reach here
         break;

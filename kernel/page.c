@@ -24,17 +24,3 @@ struct page_table_entry
     u32 resv : 5;
     u32 frame : 20;
 } __attribute__((packed));
-
-static inline u32 page_get_dir_paddr()
-{
-    u32 paddr = 0;
-    asm volatile("movl %%cr3, %0"
-                 : "=r"(paddr));
-    return paddr;
-}
-
-u32 page_get_paddr(u32 vaddr)
-{
-    u32 paddr = 0;
-    
-}

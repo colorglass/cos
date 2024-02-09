@@ -23,7 +23,7 @@ void fat_print_fat();
 u32 fat_load_kernel();
 
 u32 elf_get_mem_size(char* file);
-u32 elf_load_kernel(char* file, u32 load_paddr);
+u32 elf_load_kernel(char* file);
 
 int mem_map_init();
 u32 mem_find_kernel_available(u32 size);

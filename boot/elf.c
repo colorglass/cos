@@ -140,7 +140,7 @@ u32 elf_get_mem_size(char* file)
 }
 
 // setup kernel from the elf file
-u32 elf_load_kernel(char* file, u32 load_paddr)
+u32 elf_load_kernel(char* file)
 {
     if(!elf_is_vaild((struct elf_header*)file)) {
         return 0;
@@ -156,32 +156,7 @@ u32 elf_load_kernel(char* file, u32 load_paddr)
         if(ph_table[i].type != 1)
             continue;
 
-        u32 align = ph_table[i].align;
-        u32 file_start = ROUND_DOWN(ph_table[i].offset, PAGE_SIZE);
-        u32 file_end = ROUND_UP(ph_table[i].offset + ph_table[i].filesz, PAGE_SIZE);
-        u32 file_length = file_end - file_start;
-
-        u32 kernel_start = ROUND_DOWN(ph_table[i].vaddr, PAGE_SIZE);
-        u32 kernel_end = ROUND_UP(ph_table[i].vaddr + ph_table[i].memsz, PAGE_SIZE);
-        u32 kernel_length = kernel_end - kernel_start;
-
-        memcpy((void*)load_paddr, file + file_start, file_length);
-
-        if(kernel_length > file_length)
-            memset((void*)(load_paddr + file_length), 0, kernel_length - file_length);
-        
-
-        // clear the unaligned part
-        if(file_start < ph_table[i].offset) {
-            u32 padding_size = ph_table[i].offset - file_start;
-            memset(kernel_start, 0, padding_size);
-        }
-
-        if(file_end > ph_table[i].offset + ph_table[i].filesz) {
-            u32 padding_size = file_end - ph_table[i].offset - ph_table[i].filesz;
-            memset(kernel_start + ph_table[i].filesz + ph_table[i].offset - file_start, 0, padding_size);
-        }
-        
+        memcpy(ph_table[i].vaddr, file + ph_table[i].offset, ph_table[i].filesz);
     }
 
     return ((struct elf_header*)file)->entry;

@@ -3,10 +3,9 @@
 
     .text
 _start:
-    pop %eax
     mov $_stack_top, %esp
     mov $_stack_top, %ebp
-    push %eax
+    push %ebx
     call kernel_main
 
 1:
