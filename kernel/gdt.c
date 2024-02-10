@@ -16,7 +16,7 @@ struct gdt_ptr{
 static struct gdt_entry gdt[5] __attribute__((aligned(8)));
 static struct gdt_ptr gdt_ptr __attribute__((aligned(4)));
 
-int gdt_init()
+void gdt_init()
 {
     memset(gdt, 0, sizeof(struct gdt_entry));
 
@@ -33,4 +33,18 @@ int gdt_init()
     gdt[4].bits_high = 0x00cff200;
 
     gdt_ptr.limit = sizeof(gdt) - 1;
+    gdt_ptr.base = (u32)&gdt[0];
+
+    asm volatile(
+        "lgdt %0;"
+        "ljmp $0x08, $.1;"
+        ".1:"
+        "mov $0x10, %%ax;"
+        "mov %%ax, %%ds;"
+        "mov %%ax, %%es;"
+        "mov %%ax, %%fs;"
+        "mov %%ax, %%gs;"
+        "mov %%ax, %%ss;"
+        ::"m"(gdt_ptr.limit)
+    );
 }
