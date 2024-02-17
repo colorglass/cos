@@ -1,0 +1,7 @@
+#define PAGE_SIZE 4096
+#define KERNEL_DPL 0
+#define USER_DPL 3
+#define KERNEL_CODE_SEL (0x08 | KERNEL_DPL)
+#define KERNEL_DATA_SEL (0x10 | KERNEL_DPL)
+#define USER_CODE_SEL (0x18 | USER_DPL)
+#define USER_DATA_SEL (0x20 | USER_DPL) 
