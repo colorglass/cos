@@ -3,6 +3,8 @@
     .section .bootsector, "awx"
     .global _mbr
 _mbr:
+    cli
+
     mov %dl, boot_drive     // save boot drive num
     xor %ax, %ax            // init segment registers
     mov %ax, %ds

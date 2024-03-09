@@ -2,6 +2,7 @@
 #include <utils.h>
 #include <type.h>
 #include <irq.h>
+#include <kalloc.h>
 
 int kernel_main(u32 mem_map_addr)
 {
@@ -14,13 +15,8 @@ int kernel_main(u32 mem_map_addr)
     gdt_init();
     irq_init_idt();
 
-    struct mem_map* mem_map = (struct mem_map*)mem_map_addr;
-    for(int i = 0; i < mem_map->size; i++) {
-        if(mem_map->maps[i].type == MEM_TYPE_KERNEL)
-            kernel_paddr = mem_map->maps[i].base;
-    }
-
-    
+    kalloc_init();
+    u32 *array = kalloc(sizeof(u32) * 10);
     // setup gdt
     // setup irq
     // setup mem

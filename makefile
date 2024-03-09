@@ -17,7 +17,7 @@ disk.img: boot.bin kernel.elf
 	fdisk disk.img < fdisk.txt
 	dd if=boot.bin of=disk.img conv=notrunc bs=440 count=1
 	dd if=boot.bin of=disk.img conv=notrunc bs=512 skip=1 seek=1
-	if [ -d temp ]; then rm -f temp; fi
+	if [ -d temp ]; then rm -rf temp; fi
 	mkdir temp && sudo mount -o loop,offset=1048576 disk.img temp
 	sudo cp kernel.elf temp
 	sudo umount temp && rm -r temp
@@ -31,7 +31,7 @@ kernel.elf: kernel/*.c kernel/*.S
 
 .phony: debug
 debug: disk.img boot.a
-	qemu-system-i386 -s -S -display curses -hda disk.img -m 128M
+	qemu-system-i386 -s -S -hda disk.img -m 128M
 
 .phony: clean
 clean:

@@ -24,3 +24,10 @@ struct page_table_entry
     u32 resv : 5;
     u32 frame : 20;
 } __attribute__((packed));
+
+
+
+void page_map_frame(u32 frame)
+{
+
+}
