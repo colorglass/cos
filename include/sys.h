@@ -10,7 +10,7 @@
 #define PAGE_NUM(addr) ((addr) >> PAGE_SIZE_BIT)
 #define PAGE_OFF(addr) ((addr) & ((1 << PAGE_SIZE_BIT) - 1))
 #define PAGE_FRAME(addr) PAGE_NUM(addr)
-#define PAGE_CNT(size) (ROUND_UP(size, PAGE_SIZE) >> PAGE_SIZE_BIT)
+#define PAGE_CNT(size) (ALIGN_UP(size, PAGE_SIZE) >> PAGE_SIZE_BIT)
 
 #define KERNEL_VADDR_BASE 0xc0000000
 

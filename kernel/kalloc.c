@@ -2,11 +2,12 @@
 #include <sys.h>
 #include <mem.h>
 #include <list.h>
+#include <utils.h>
 
-// the max alloc chunk size is 2^14 --> 16KB
-#define KHEAP_BIN_COUNT 13
-#define KHEAP_MIN_ALLOC sizeof(struct list_head)
-#define KHEAP_MAX_ALLOC (1 << 14)
+// [todo] : fix hanked KHEAP_BIN_COUNT, when in 64bit mode, it will mismatch with the KHEAP_MAX_ALLOC
+#define KHEAP_MIN_ALLOC sizeof(struct list_head)        // 8 bytes
+#define KHEAP_MAX_ALLOC (1 << 14)                       // 16 KB
+#define KHEAP_BIN_COUNT 12
 
 #define KHEAP_MIN_NODE_SIZE (sizeof(struct knode) + sizeof(struct footer))
 #define KHEAP_NODE_OVERHEAD (offset_of(struct knode, list) + sizeof(struct footer))
@@ -14,6 +15,7 @@
 #define KHEAP_MIN_WILD_SIZE 0x1000
 #define KHEAP_MAX_FRAGMENTS 8
 
+// pre allocated buffer for kheap, 1MB
 #define PRE_BUFFER_SIZE 0x100000
 static u8 pre_buffer[PRE_BUFFER_SIZE] __attribute__((aligned(PAGE_SIZE)));
 
@@ -30,7 +32,7 @@ struct knode
     u32 size;
     bool free;
     struct list_head list;
-} __attribute__((packed));
+};
 
 struct footer
 {
@@ -65,9 +67,8 @@ static int bin_get_index(u32 size)
 {
     int index = 0;
     size = size < KHEAP_MIN_ALLOC ? KHEAP_MIN_ALLOC : size;
-    while (size >>= 1)
-        index++;
-    index -= 2;
+    size = size > KHEAP_MAX_ALLOC ? KHEAP_MAX_ALLOC : size;
+    index = 31 - clzl(size) - ctzl(KHEAP_MIN_ALLOC);
 
     index = index >= KHEAP_BIN_COUNT ? KHEAP_BIN_COUNT - 1 : index;
     return index;
@@ -92,9 +93,7 @@ static void add_free_node(struct knode *node)
     list_for_each_entry(entry, head, list)
     {
         if (entry->size > node->size)
-        {
             break;
-        }
     }
 
     list_add_tail(&node->list, &entry->list);
@@ -105,11 +104,20 @@ static void remove_free_node(struct knode *node)
 {
     int index = bin_get_index(node->size);
     list_del_init(&node->list);
+    // may we clear node->list?
+    // memset(&node->list, 0, sizeof(struct list_head))
     kheap.free_counts[index]--;
     if (kheap.free_counts[index] < 0)
-    {
         panic("free_counts is negative\n");
-    }
+}
+
+static struct knode* make_free_knode(void* region, size_t region_size)
+{
+    struct knode* node = (struct knode*)region;
+    node->size = region_size - KHEAP_NODE_OVERHEAD;
+    node->free = true;
+    knode_make_footer(node);
+    return node;
 }
 
 void *kalloc(u32 size)
@@ -126,21 +134,24 @@ void *kalloc(u32 size)
         best_fit = free_bins_best_fit(&kheap.free_bins[++index], size);
     }
 
+    // we first remove the best_fit from the free list
+    remove_free_node(best_fit);
+
     // if there is enough space to split
-    if (best_fit->size - size > KHEAP_MIN_NODE_SIZE)
+    if (best_fit->size - size >= KHEAP_MIN_NODE_SIZE)
     {
         // create new node
-        struct knode *new_node = (struct knode *)((u8 *)best_fit + size + KHEAP_NODE_OVERHEAD);
-        new_node->size = best_fit->size - size - KHEAP_NODE_OVERHEAD;
-        knode_make_footer(new_node);
-        add_free_node(&kheap.free_bins[bin_get_index(new_node->size)], &new_node->list);
+        void* split_region = (u8*)best_fit + size + KHEAP_NODE_OVERHEAD;
+        size_t split_size = best_fit->size - size;
+        struct knode* new_node = make_free_knode(split_region, split_size);
+        add_free_node(new_node);
 
         best_fit->size = size;
         knode_make_footer(best_fit);
     }
 
     best_fit->free = false;
-    remove_free_node(best_fit);
+    
     struct knode *wilder = kheap_get_wild(&kheap);
     if (wilder->size < KHEAP_MIN_WILD_SIZE)
     {
@@ -167,7 +178,7 @@ void kfree(void *ptr)
     {
         struct knode *next = (struct knode *)((u8 *)node + node->size + KHEAP_NODE_OVERHEAD);
 
-        if (next < kheap.end && next->free)
+        if ((u8*)next < (u8*)kheap.end && next->free)
         {
             node->size = node->size + next->size + KHEAP_NODE_OVERHEAD;
             struct footer *old_footer = knode_get_footer(node);
@@ -177,7 +188,7 @@ void kfree(void *ptr)
             remove_free_node(next);
         }
 
-        if (node > kheap.start)
+        if ((u8*)node > (u8*)kheap.start)
         {
             struct footer *prev_footer = (struct footer *)((u8 *)node - sizeof(struct footer));
             struct knode *prev = (struct knode *)((u8 *)node - prev_footer->size - KHEAP_NODE_OVERHEAD);
@@ -208,11 +219,7 @@ int kalloc_init()
     kheap.start = (void *)pre_buffer;
     kheap.end = (void *)(pre_buffer + PRE_BUFFER_SIZE);
 
-    struct knode *init_region = (struct knode *)pre_buffer;
-    // the overhead memory are knode.size and footer, since knode.list is unused for the allocated chunk
-    init_region->size = PRE_BUFFER_SIZE - KHEAP_NODE_OVERHEAD;
-    init_region->free = true;
-    knode_make_footer(init_region);
+    struct knode *init_region = make_free_knode(kheap.start, PRE_BUFFER_SIZE);
     add_free_node(init_region);
 
     return 0;

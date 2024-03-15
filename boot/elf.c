@@ -136,7 +136,7 @@ u32 elf_get_mem_size(char* file)
             end = ph_table[i].vaddr + ph_table[i].memsz;
     }
 
-    return ROUND_UP((end - start), PAGE_SIZE);
+    return ALIGN_UP((end - start), PAGE_SIZE);
 }
 
 // setup kernel from the elf file

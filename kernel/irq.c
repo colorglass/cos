@@ -83,4 +83,5 @@ void irq_init_idt()
 void isr_handler(struct irq_frame frame)
 {
     printf("isr_handler: int_no=%d, err_code=%d\n", frame.int_no, frame.err_code);
+    panic("irq");
 }

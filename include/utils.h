@@ -28,8 +28,8 @@ struct mem_map {
 #define BIT(n) (1 << (n))
 #define BITS(l, r) ((BIT((l) - (r) + 1) - 1) << (r))
 
-#define ROUND_UP(x, n) (((x) + (n) - 1) & ~((n) - 1))
-#define ROUND_DOWN(x, n) ((x) & ~((n) - 1))
+#define ALIGN_UP(x, n) (((x) + (n) - 1) & ~((n) - 1))
+#define ALIGN_DOWN(x, n) ((x) & ~((n) - 1))
 
 #define outb(port, val) asm ("outb %%al, %%dx" : : "a"(val), "d"(port))
 #define outw(port, val) asm ("outw %%ax, %%dx" : : "a"(val), "d"(port))
@@ -43,5 +43,8 @@ typedef char *va_list;
 #define va_end(ap) ((ap) = (void *)NULL)
 #define va_start(ap, parmN) ((ap) = (char *)(&(parmN)) + sizeof(parmN))
 #define va_copy(dest, src) ((dest) = (src))
+
+#define ctzl(x) __builtin_ctzl(x)
+#define clzl(x) __builtin_clzl(x)
 
 #endif

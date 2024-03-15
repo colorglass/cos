@@ -23,7 +23,7 @@ void boot_main()
     u32 kernel_elf_size = 0;
 
     // warn: kernel elf size should not be larger than the free memory gap in the early 1MB memory
-    char* kernel_elf_addr = (char*)ROUND_UP((u32)&_boot_end[0], PAGE_SIZE);
+    char* kernel_elf_addr = (char*)ALIGN_UP((u32)&_boot_end[0], PAGE_SIZE);
     while((boot_parti = disk_find_next_bootable(boot_parti)) >= 0)
     {
         printf("Find bootable partition: %d\n", boot_parti);
