@@ -4,6 +4,8 @@
 #include <bitmap.h>
 #include <list.h>
 #include <mem.h>
+#include <kmalloc.h>
+#include <panic.h>
 
 struct ram_block {
     u32 start;
@@ -23,12 +25,7 @@ struct ram_info {
 u32 pv_offset;
 struct mem_map* pmem_map;
 
-// preserved buffer for setup physical memory manager
-// 4KB bitmap can represent 4 * 8 * 4KB = 128MB memory
-#define PRE_RAM_BUFFER_SIZE 1024
-static u8 pre_ram_buffer[PRE_RAM_BUFFER_SIZE] __attribute__((aligned(4096)));
-static u8 pre_ram_bitmap_buffer[PAGE_NUM(PRE_RAM_BUFFER_SIZE) / 8];
-static struct ram_block pre_ram_block;
+extern u8 __kernel_end[];
 static struct ram_info ram_info;
 
 void* p2v(u32 paddr) {
@@ -39,50 +36,38 @@ u32 v2p(void* vaddr) {
     return (u32)vaddr - pv_offset;
 }
 
-u32 ram_get_pv_offset(struct mem_map* mem_map)
+void ram_init(struct mem_map* mem_map)
 {
-    for(int i = 0; i < mem_map->size; i++) {
-        if(mem_map->maps[i].type == MEM_TYPE_KERNEL) {
-            return KERNEL_VADDR_BASE - (u32)mem_map->maps[i].base;
-        }
-    }
-    return 0;
-}
+    // copy mem_map from bootloader into kernel
+    int map_size = mem_map->size * sizeof(struct mem_region) + sizeof(struct mem_map);
+    pmem_map = (struct mem_map*)kmalloc(map_size);
+    assert(pmem_map, "alloc pmem_map failed");
+    memcpy(pmem_map, mem_map, map_size);
 
-void* frame_alloc(u32 num)
-{
-    u32 alloced_frame_start = 0;
-    if(ram_info.frames < num) {
-        return NULL;
+    u32* bitmap_base = (u32*)ALIGN_UP((size_t)__kernel_end, PAGE_SIZE);
+    list_init_head(&ram_info.head);
+
+    for(int i = 0; i < pmem_map->size; i++) {
+        if(pmem_map->maps[i].type == MEM_TYPE_AVAILABLE) {
+            u32 frames = pmem_map->maps[i].length / PAGE_SIZE;  // assert length aligned to pagesize
+            struct ram_block* ram_block = (struct ram_block*)kmalloc(sizeof(struct ram_block));
+            assert(ram_block,"failed to alloc ram_block");
+            ram_block->frames = frames;
+            ram_block->avail_frames = frames;
+            ram_block->start = pmem_map->maps[i].base;   // assert base aligned to pagesize
+            bitmap_init(&ram_block->bitmap, bitmap_base, frames);
+            bitmap_base += bitmap_buffer_size(&ram_block->bitmap);
+
+            list_init_head(&ram_block->list);
+            list_add(&ram_block->list, &ram_info.head);
+            ram_info.frames += ram_block->frames;
+        }
     }
 
     struct ram_block* block;
     list_for_each_entry(block, &ram_info.head, list) {
-        if(block->avail_frames < num)
-            continue;
-
-        int bit_offset = bitmap_scan_zero_set(&block->bitmap, num);
-        if(bit_offset < 0)
-            continue;
-
-        alloced_frame_start = bit_offset + block->start;
-        block->avail_frames -= num;
-        break;
+        if(block->start)
     }
 
-    // if block is not found
-    if(alloced_frame_start == 0) 
-        return NULL;
 
-    // here block is always significant
-    if(list_is_last(&block->list, &ram_info.head)) {
-        return p2v(alloced_frame_start);
-    }
-
-    // [todo] map frame into kernel's virtual space
-    return NULL;
-}
-
-void ram_pre_init(struct mem_map* mem_map)
-{
 }

@@ -120,7 +120,7 @@ static struct knode* make_free_knode(void* region, size_t region_size)
     return node;
 }
 
-void *kalloc(u32 size)
+void *kmalloc(u32 size)
 {
     if (size == 0 || size > KHEAP_MAX_ALLOC)
         return NULL;
@@ -208,7 +208,7 @@ void kfree(void *ptr)
     add_free_node(node);
 }
 
-int kalloc_init()
+int kmalloc_init()
 {
     for (int i = 0; i < KHEAP_BIN_COUNT; i++)
     {
