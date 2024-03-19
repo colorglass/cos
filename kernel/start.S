@@ -17,4 +17,3 @@ _start:
 _stack_bottom:
     .skip 0x4000
 _stack_top:
-

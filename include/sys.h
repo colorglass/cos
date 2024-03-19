@@ -13,5 +13,3 @@
 #define PAGE_CNT(size) (ALIGN_UP(size, PAGE_SIZE) >> PAGE_SIZE_BIT)
 
 #define KERNEL_VADDR_BASE 0xc0000000
-
-void panic(char* msg);

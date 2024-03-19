@@ -3,6 +3,7 @@
 #include <mem.h>
 #include <list.h>
 #include <utils.h>
+#include <panic.h>
 
 // [todo] : fix hanked KHEAP_BIN_COUNT, when in 64bit mode, it will mismatch with the KHEAP_MAX_ALLOC
 #define KHEAP_MIN_ALLOC sizeof(struct list_head)        // 8 bytes
@@ -17,7 +18,10 @@
 
 // pre allocated buffer for kheap, 1MB
 #define PRE_BUFFER_SIZE 0x100000
-static u8 pre_buffer[PRE_BUFFER_SIZE] __attribute__((aligned(PAGE_SIZE))) __attribute__((section(".heap")));
+// # here after @nobits start a one line comment that overrided the compiler's default attribute
+// expend to .section,"aw",@nobits#,"aw",@progbits
+// put heap buffer in the kernel window end for expanding up
+static u8 pre_buffer[PRE_BUFFER_SIZE] __attribute__((aligned(PAGE_SIZE))) __attribute__((section(".heap,\"aw\",@nobits#")));
 
 struct kheap
 {
