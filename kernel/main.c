@@ -3,11 +3,10 @@
 #include <type.h>
 #include <irq.h>
 #include <kmalloc.h>
+#include <pmm.h>
 
 int kernel_main(u32 mem_map_addr)
 {
-    u32 kernel_paddr;
-
     display_init();
     display_clear();
     printf("This is kernel!\n");
@@ -16,20 +15,15 @@ int kernel_main(u32 mem_map_addr)
     irq_init_idt();
 
     kmalloc_init();
-    u32 *a1 = kmalloc(sizeof(u32) * 10);
-    for(int i = 0; i < 10; i++) {
-        a1[i] = 1;
-    }
-    u32 *a2 = kmalloc(sizeof(u32) * 4);
-    for(int i = 0; i < 4; i++) {
-        a2[i] = 2;
-    }
-    kfree(a1);
-    u32 *a3 = kmalloc(sizeof(u32));
-    *a3 = 3;
-    kfree(a3);
-    u32 *a4 = kmalloc(sizeof(u32));
-    printf("%d",*a4); 
+    pmm_init((struct mem_map*)mem_map_addr);
+    uintptr_t frame1 = pmm_alloc(1);
+    uintptr_t frame2 = pmm_alloc(1024);
+    pmm_free(frame1, 1);
+    uintptr_t frame3 = pmm_alloc(4);
+
+    printf("frame1: %x\n", frame1);
+    printf("frame2: %x\n", frame2);
+    printf("frame3: %x\n", frame3);
     // setup gdt
     // setup irq
     // setup mem

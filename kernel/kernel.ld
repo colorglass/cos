@@ -9,5 +9,6 @@ SECTIONS
     .rodata : { *(.rodata) }
     .data : { *(.data) }
     .bss : { *(.bss) }
+    .heap : {*(.heap)}
     __kernel_end = .;
 }

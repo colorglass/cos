@@ -10,7 +10,7 @@ static void *memcpy(void *dest, const void *src, int n)
     return dest;
 }
 
-static void *memset(void *s, char c, int n)
+static void *memset(void *s, unsigned char c, int n)
 {
     char *p = (char *)s;
     while (n--)

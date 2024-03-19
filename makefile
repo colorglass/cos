@@ -33,6 +33,10 @@ kernel.elf: kernel/*.c kernel/*.S
 debug: disk.img boot.a
 	qemu-system-i386 -s -S -hda disk.img -m 128M
 
+.phony: run
+run: disk.img boot.a
+	qemu-system-i386 -hda disk.img -m 128M
+
 .phony: clean
 clean:
 	rm *.a *.bin *.img *.elf

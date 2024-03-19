@@ -17,7 +17,7 @@
 
 // pre allocated buffer for kheap, 1MB
 #define PRE_BUFFER_SIZE 0x100000
-static u8 pre_buffer[PRE_BUFFER_SIZE] __attribute__((aligned(PAGE_SIZE)));
+static u8 pre_buffer[PRE_BUFFER_SIZE] __attribute__((aligned(PAGE_SIZE))) __attribute__((section(".heap")));
 
 struct kheap
 {

@@ -2,6 +2,7 @@
 #include <mem.h>
 #include <sys.h>
 #include <irq.h>
+#include <printf.h>
 
 struct idt_entry {
     u16 base_lo;

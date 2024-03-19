@@ -26,7 +26,6 @@ struct page_table_entry
 } __attribute__((packed));
 
 
-
 void page_map_frame(u32 frame)
 {
 

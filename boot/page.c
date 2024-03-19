@@ -5,7 +5,6 @@
 #define PAGE_SIZE_BIT 12
 #define PAGE_NUM(addr) ((addr) >> PAGE_SIZE_BIT)
 #define PAGE_OFF(addr) ((addr) & ((1 << PAGE_SIZE_BIT) - 1))
-#define PAGE_FRAME(addr) PAGE_NUM(addr)
 #define KERNEL_VADDR_BASE 0xc0000000
 
 struct page_dir_entry
@@ -61,17 +60,17 @@ void page_init()
     page_dir[0].present = 1;
     page_dir[0].writable = 1;
     page_dir[0].super = 1;
-    page_dir[0].frame = PAGE_FRAME((u32)page_table); // for now we are still in the physical world, so we use the address directly
+    page_dir[0].frame = PAGE_NUM((u32)page_table); // for now we are still in the physical world, so we use the address directly
 
     // map kernel page table
     u32 kernel_page_table_idx = PAGE_NUM(0xc0000000) / 1024;
     page_dir[kernel_page_table_idx].present = 1;
     page_dir[kernel_page_table_idx].writable = 1;
     page_dir[kernel_page_table_idx].super = 1;
-    page_dir[kernel_page_table_idx].frame = PAGE_FRAME((u32)page_table_kernel);
+    page_dir[kernel_page_table_idx].frame = PAGE_NUM((u32)page_table_kernel);
 
     // enable paging
-    u32 cr3 = PAGE_FRAME((u32)page_dir) << 12;
+    u32 cr3 = PAGE_NUM((u32)page_dir) << 12;
     asm volatile("movl %0, %%cr3" ::"r"(cr3));
     asm volatile("movl %%cr0, %%eax \n"
                  "orl $0x80000000, %%eax \n"
@@ -91,7 +90,7 @@ u32 page_map_kernel(u32 paddr, u32 size)
         page_table_kernel[page].present = 1;
         page_table_kernel[page].writable = 1;
         page_table_kernel[page].super = 1;
-        page_table_kernel[page].frame = PAGE_FRAME(paddr) + page;
+        page_table_kernel[page].frame = PAGE_NUM(paddr) + page;
     }
 
     // clear kernel memory

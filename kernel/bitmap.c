@@ -17,12 +17,28 @@ void bitmap_set(struct bitmap *bitmap, u32 index)
     bitmap->bits[index / 32] |= (1 << (index % 32));
 }
 
+// slow implementation
+void bitmap_set_range(struct bitmap *bitmap, u32 index, u32 count)
+{
+    for(int i = 0; i < count; i++) {
+        bitmap_set(bitmap, index + i);
+    }
+}
+
 void bitmap_clear(struct bitmap *bitmap, u32 index)
 {
     if (index > bitmap->size)
         return;
 
     bitmap->bits[index / 32] &= ~(1 << (index % 32));
+}
+
+// slow implementation
+void bitmap_clear_range(struct bitmap *bitmap, u32 index, u32 count)
+{
+    for(int i = 0; i < count; i++) {
+        bitmap_clear(bitmap, index + i);
+    }
 }
 
 int bitmap_test(struct bitmap *bitmap, u32 index)
