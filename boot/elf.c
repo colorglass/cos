@@ -139,12 +139,16 @@ u32 elf_get_mem_size(char* file)
     return ALIGN_UP((end - start), PAGE_SIZE);
 }
 
+#define KERNEL_VADDR_BASE 0xc0000000
+
 // setup kernel from the elf file
-u32 elf_load_kernel(char* file)
+u32 elf_load_kernel(char* file, u32 load_paddr)
 {
     if(!elf_is_vaild((struct elf_header*)file)) {
         return 0;
     }
+
+    u32 pv_off = KERNEL_VADDR_BASE - load_paddr;
 
     int prog_num = ((struct elf_header*)file)->phnum;
     struct elf_prog_header* ph_table = (struct elf_prog_header*)(file + ((struct elf_header*)file)->phoff);
@@ -155,8 +159,10 @@ u32 elf_load_kernel(char* file)
 
         if(ph_table[i].type != 1)
             continue;
-
-        memcpy(ph_table[i].vaddr, file + ph_table[i].offset, ph_table[i].filesz);
+        
+        bool writeable = ph_table[i].flags & 0x2 ? true : false;
+        memcpy(ph_table[i].vaddr - pv_off, file + ph_table[i].offset, ph_table[i].filesz);
+        page_map_kernel_pages(ph_table[i].vaddr - pv_off, ph_table[i].vaddr, ph_table[i].memsz, writeable);
     }
 
     return ((struct elf_header*)file)->entry;

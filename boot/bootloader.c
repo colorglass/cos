@@ -41,8 +41,7 @@ void boot_main()
 
         u32 mem_size = elf_get_mem_size(kernel_elf_addr);
         u32 kernel_load_paddr = mem_find_kernel_available(mem_size);
-        page_map_kernel(kernel_load_paddr, mem_size);
-        u32 entry = elf_load_kernel(kernel_elf_addr);
+        u32 entry = elf_load_kernel(kernel_elf_addr, kernel_load_paddr);
 
         // not setup kernel stack yet
         // pass the mem map location to os

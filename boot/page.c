@@ -1,6 +1,7 @@
 #include <boot.h>
 #include <type.h>
 #include <mem.h>
+#include <utils.h>
 
 #define PAGE_SIZE_BIT 12
 #define PAGE_NUM(addr) ((addr) >> PAGE_SIZE_BIT)
@@ -78,23 +79,20 @@ void page_init()
 }
 
 // temporarily map kernel into the max 4MB from 0xc0000000
-u32 page_map_kernel(u32 paddr, u32 size)
+u32 page_map_kernel_pages(u32 paddr, u32 vaddr, u32 size, bool writeable)
 {
-    u32 kernel_start_page = PAGE_NUM(KERNEL_VADDR_BASE);
-    u32 page_nums = PAGE_NUM(size);
+    u32 start_page_off = PAGE_NUM(vaddr) - PAGE_NUM(KERNEL_VADDR_BASE);
+    u32 page_nums = PAGE_NUM(ALIGN_UP(size, PAGE_SIZE));
 
-    if(page_nums > 1024)
+    if(start_page_off + page_nums > 1024)
         return 0;
 
-    for (int page = 0; page < page_nums; page++) {
+    for (int page = start_page_off; page < page_nums; page++) {
         page_table_kernel[page].present = 1;
-        page_table_kernel[page].writable = 1;
+        page_table_kernel[page].writable = writeable? 1 : 0;
         page_table_kernel[page].super = 1;
         page_table_kernel[page].frame = PAGE_NUM(paddr) + page;
     }
 
-    // clear kernel memory
-    memset((void*)KERNEL_VADDR_BASE, 0, size);
-
-    return KERNEL_VADDR_BASE;
+    return vaddr;
 }
