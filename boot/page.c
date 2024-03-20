@@ -81,17 +81,17 @@ void page_init()
 // temporarily map kernel into the max 4MB from 0xc0000000
 u32 page_map_kernel_pages(u32 paddr, u32 vaddr, u32 size, bool writeable)
 {
-    u32 start_page_off = PAGE_NUM(vaddr) - PAGE_NUM(KERNEL_VADDR_BASE);
+    u32 start_page = PAGE_NUM(vaddr) - PAGE_NUM(KERNEL_VADDR_BASE);
     u32 page_nums = PAGE_NUM(ALIGN_UP(size, PAGE_SIZE));
 
-    if(start_page_off + page_nums > 1024)
+    if(start_page + page_nums > 1024)
         return 0;
 
-    for (int page = start_page_off; page < page_nums; page++) {
-        page_table_kernel[page].present = 1;
-        page_table_kernel[page].writable = writeable? 1 : 0;
-        page_table_kernel[page].super = 1;
-        page_table_kernel[page].frame = PAGE_NUM(paddr) + page;
+    for (int i = 0; i < page_nums; i++) {
+        page_table_kernel[start_page + i].present = 1;
+        page_table_kernel[start_page + i].writable = writeable? 1 : 0;
+        page_table_kernel[start_page + i].super = 1;
+        page_table_kernel[start_page + i].frame = PAGE_NUM(paddr) + i;
     }
 
     return vaddr;
