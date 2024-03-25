@@ -31,8 +31,8 @@ size_t kpv_off;
 
 void pmm_init(struct mem_map* mem_map)
 {
-    memset(bits, 0xff, PMM_BITMAP_SIZE);
     bitmap_init(&pmm.bitmap, bits, PMM_FRAME_NUMS);
+    bitmap_set_all(&pmm.bitmap);
 
     pmm.mem_maps = (struct pmem_map*)kmalloc(sizeof(struct pmem_map) * mem_map->size);
     pmm.map_entries = mem_map->size;

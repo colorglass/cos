@@ -25,6 +25,13 @@ void bitmap_set_range(struct bitmap *bitmap, u32 index, u32 count)
     }
 }
 
+void bitmap_set_all(struct bitmap *bitmap)
+{
+    for(int i = 0; i <= bitmap->size / 32; i++) {
+        bitmap->bits[i] = 0xffffffff;
+    }
+}
+
 void bitmap_clear(struct bitmap *bitmap, u32 index)
 {
     if (index > bitmap->size)
@@ -41,6 +48,13 @@ void bitmap_clear_range(struct bitmap *bitmap, u32 index, u32 count)
     }
 }
 
+void bitmap_clear_all(struct bitmap *bitmap)
+{
+    for(int i = 0; i <= bitmap->size / 32; i++) {
+        bitmap->bits[i] = 0;
+    }
+}
+
 int bitmap_test(struct bitmap *bitmap, u32 index)
 {
     if (index > bitmap->size)
@@ -51,8 +65,11 @@ int bitmap_test(struct bitmap *bitmap, u32 index)
 
 int bitmap_scan_zero(struct bitmap* bitmap, u32 count)
 {
+    if(count > 32)
+        return -1;
+        
     int i, j;
-    for(i = 0; i < bitmap->size / 32; i++) {
+    for(i = 0; i <= bitmap->size / 32; i++) {
         if(bitmap->bits[i] != 0xffffffff) {
             u32 mask = (1 << count) - 1;
             for(j = 0; j <= 32 - count; j++) {

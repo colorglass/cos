@@ -5,7 +5,7 @@
 #include <kmalloc.h>
 #include <pmm.h>
 
-int kernel_main(u32 mem_map_addr)
+void kernel_main(u32 mem_map_addr)
 {
     display_init();
     display_clear();
@@ -17,7 +17,7 @@ int kernel_main(u32 mem_map_addr)
     kmalloc_init();
     pmm_init((struct mem_map*)mem_map_addr);
     uintptr_t frame1 = pmm_alloc(1);
-    uintptr_t frame2 = pmm_alloc(1024);
+    uintptr_t frame2 = pmm_alloc(16);
     pmm_free(frame1, 1);
     uintptr_t frame3 = pmm_alloc(4);
 
@@ -28,5 +28,5 @@ int kernel_main(u32 mem_map_addr)
     // setup irq
     // setup mem
     // setup page
-    while(1);
+    panic("kernel end");
 }
