@@ -6,12 +6,7 @@
 #include <mem.h>
 #include <kmalloc.h>
 #include <panic.h>
-
-struct pmem_map {
-    u32 start;
-    u32 length;
-    u32 type;
-};
+#include <pmm.h>
 
 struct pmm {
     u32 ram_frames;
@@ -26,8 +21,6 @@ struct pmm {
 #define PMM_BITMAP_SIZE (PMM_FRAME_NUMS / 8)
 static u8 bits[PMM_BITMAP_SIZE] __attribute__((aligned(PAGE_SIZE)));
 static struct pmm pmm;
-
-size_t kpv_off;
 
 void pmm_init(struct mem_map* mem_map)
 {
@@ -47,8 +40,6 @@ void pmm_init(struct mem_map* mem_map)
         if(mem_map->maps[i].type == MEM_TYPE_AVAILABLE) {
             bitmap_clear_range(&pmm.bitmap, PAGE_NUM(start), PAGE_CNT(length));
             pmm.ram_frames += PAGE_CNT(length);
-        } else if (mem_map->maps[i].type == MEM_TYPE_KERNEL) {
-            kpv_off = KERNEL_VADDR_BASE - start;
         }
     }
     pmm.avails = pmm.ram_frames;
@@ -80,5 +71,14 @@ void pmm_debug()
     printf("physical memory map:\n");
     for(int i = 0; i < pmm.map_entries; i++) {
         printf("start: 0x%x, length: 0x%x, type: %d\n", pmm.mem_maps[i].start, pmm.mem_maps[i].length, pmm.mem_maps[i].type);
+    }
+}
+
+struct pmem_map* pmm_get_kernel_pmap()
+{
+    for(int i = 0; i < pmm.map_entries; i++) {
+        if(pmm.mem_maps[i].type == MEM_TYPE_KERNEL) {
+            return &pmm.mem_maps[i];
+        }
     }
 }

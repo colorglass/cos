@@ -4,6 +4,7 @@
 #include <irq.h>
 #include <kmalloc.h>
 #include <pmm.h>
+#include <page.h>
 
 void kernel_main(u32 mem_map_addr)
 {
@@ -16,7 +17,15 @@ void kernel_main(u32 mem_map_addr)
 
     kmalloc_init();
     pmm_init((struct mem_map*)mem_map_addr);
+    page_init();
+
     uintptr_t frame1 = pmm_alloc(1);
+    page_map(0xf1000000, frame1, KERNEL_PAGE_FLAGS);
+    u32* p = (u32*)0xf1000000;
+    *p = 0x12345678;
+    printf("p: %x\n", *p);
+    page_unmap(0xf1000000);
+    *p = 0x87654321;
     uintptr_t frame2 = pmm_alloc(16);
     pmm_free(frame1, 1);
     uintptr_t frame3 = pmm_alloc(4);
