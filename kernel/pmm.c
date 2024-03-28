@@ -81,4 +81,5 @@ struct pmem_map* pmm_get_kernel_pmap()
             return &pmm.mem_maps[i];
         }
     }
+    return NULL;
 }

@@ -70,8 +70,8 @@ void page_init()
     page_dir[1023].frame = PAGE_NUM((uintptr_t)page_dir - kpv_off);
 
     // [todo]: remap the vga buffer into kernel space
-    // here map the lower 1MB identically
-    for(int i = 0; i < 256; i++) {
+    // here map the lower 1MB identically exclude the first 4KB
+    for(int i = 1; i < 256; i++) {
         lopt[i].present = 1;
         lopt[i].writable = 1;
         lopt[i].frame = i;

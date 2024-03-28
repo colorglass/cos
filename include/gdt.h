@@ -6,6 +6,6 @@
 #define USER_CS (0x18 | 0x03)
 #define USER_DS (0x20 | 0x03)
 
-
+void gdt_init();
 
 #endif

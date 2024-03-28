@@ -4,6 +4,8 @@
 #include <list.h>
 #include <utils.h>
 #include <panic.h>
+#include <pmm.h>
+#include <page.h>
 
 // [todo] : fix hanked KHEAP_BIN_COUNT, when in 64bit mode, it will mismatch with the KHEAP_MAX_ALLOC
 #define KHEAP_MIN_ALLOC sizeof(struct list_head)        // 8 bytes
@@ -44,11 +46,6 @@ struct footer
 };
 
 static struct kheap kheap;
-
-static inline int kheap_expand()
-{
-    return 0;
-}
 
 static inline struct knode *kheap_get_wild(struct kheap *heap)
 {
@@ -124,6 +121,20 @@ static struct knode* make_free_knode(void* region, size_t region_size)
     return node;
 }
 
+static inline int kheap_expand(struct kheap *heap, struct knode* wilder)
+{
+    uintptr_t new_page = (uintptr_t)heap->end;
+    assert(new_page % PAGE_SIZE == 0, "kheap_expand: kheap end must be aligned with PAGE_SIZE");
+
+    // [todo]: check the new_page boundary
+    for(int i = 0; i < KHEAP_MIN_WILD_SIZE; i += PAGE_SIZE) {
+        uintptr_t frame = pmm_alloc(1);
+        page_map(new_page + i, frame, KERNEL_PAGE_FLAGS);
+    }
+    
+    return 0;
+}
+
 void *kmalloc(u32 size)
 {
     if (size == 0 || size > KHEAP_MAX_ALLOC)
@@ -159,7 +170,7 @@ void *kmalloc(u32 size)
     struct knode *wilder = kheap_get_wild(&kheap);
     if (wilder->size < KHEAP_MIN_WILD_SIZE)
     {
-        int err = kheap_expand();
+        int err = kheap_expand(&kheap, wilder);
         if (err)
             return NULL;
     }
@@ -209,10 +220,13 @@ void kfree(void *ptr)
     }
     
     node->free = true;
+
+    //[todo]: shrink the heap
+
     add_free_node(node);
 }
 
-int kmalloc_init()
+int kheap_init()
 {
     for (int i = 0; i < KHEAP_BIN_COUNT; i++)
     {
