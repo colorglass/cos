@@ -28,6 +28,8 @@ struct irq_frame {
 static struct idt_entry idt[256] __attribute__((aligned(PAGE_SIZE)));
 static struct idt_ptr idt_ptr __attribute__((aligned((4))));
 
+static void (*irq_routines[16])();
+
 static struct idt_entry idt_make_entry(u32 offset, bool user_access)
 {
     struct idt_entry entry;
@@ -76,13 +78,55 @@ void irq_init_idt()
     idt[30] = idt_make_entry((u32)isr_30, false);
     idt[31] = idt_make_entry((u32)isr_31, false);
 
+    idt[32] = idt_make_entry((u32)irq_0, false);
+    idt[33] = idt_make_entry((u32)irq_1, false);
+    idt[34] = idt_make_entry((u32)irq_2, false);
+    idt[35] = idt_make_entry((u32)irq_3, false);
+    idt[36] = idt_make_entry((u32)irq_4, false);
+    idt[37] = idt_make_entry((u32)irq_5, false);
+    idt[38] = idt_make_entry((u32)irq_6, false);
+    idt[39] = idt_make_entry((u32)irq_7, false);
+    idt[40] = idt_make_entry((u32)irq_8, false);
+    idt[41] = idt_make_entry((u32)irq_9, false);
+    idt[42] = idt_make_entry((u32)irq_10, false);
+    idt[43] = idt_make_entry((u32)irq_11, false);
+    idt[44] = idt_make_entry((u32)irq_12, false);
+    idt[45] = idt_make_entry((u32)irq_13, false);
+    idt[46] = idt_make_entry((u32)irq_14, false);
+    idt[47] = idt_make_entry((u32)irq_15, false);
+
+
     idt_ptr.limit = sizeof(idt) - 1;
     idt_ptr.base = (u32)&idt[0];
     asm volatile ("lidt %0"::"m"(idt_ptr.limit));
 }
 
+void irq_init() {
+    irq_init_idt();
+    pic_init(0x20);
+    pic_mask_all();
+    asm volatile ("sti");
+}
+
+void irq_register(u8 irq, void (*handler)()) {
+    if(irq >= 16)
+        return;
+    
+    irq_routines[irq] = handler;
+    pic_mask_irq(irq, false);
+}
+
 void isr_handler(struct irq_frame frame)
 {
-    printf("isr_handler: int_no=%d, err_code=%d\n", frame.int_no, frame.err_code);
-    panic("irq");
+    u32 int_no = frame.int_no;
+    u32 err_code = frame.err_code;
+
+    if(int_no < 32) {
+        printf("isr_handler: exception %d err_code: %d\n ", int_no, err_code);
+        panic("isr_handler: exception");
+    }
+
+    irq_routines[int_no - 32]();
+    
+    pic_eoi(int_no - 32);
 }

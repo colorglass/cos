@@ -48,5 +48,9 @@ extern void irq_13();
 extern void irq_14();
 extern void irq_15();
 
-
-void irq_init_idt();
+void pic_init(u8 offset);
+void pic_eoi(u8 irq);
+void pic_mask_all();
+void pic_mask_irq(u8 irq, bool mask);
+void irq_init();
+void irq_register(u8 irq, void (*handler)());
